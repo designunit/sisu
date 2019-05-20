@@ -2,6 +2,9 @@ import scriptcontext as sc
 import rhinoscriptsyntax as rs
 import System
 import Rhino
+import json
+import math
+
 
 system_hatch_pattern_names = [
     'Dash',
@@ -25,13 +28,19 @@ def load_system_hatch_patterns():
             hatch_pattern = sc.doc.HatchPatterns.FindIndex(hatch_pattern_index)
 
 
+def point3d(param):
+    return Rhino.Geometry.Point3d(param[0], param[1], param[2])
+
+
 def setup_layer(name, options):
     parent = options.get('parent', None)
     locked = options.get('locked', False)
 
     if not rs.IsLayer(name):
+#        print('adding layer', parent, name)
         layer = rs.AddLayer(name=name, parent=parent, locked=locked)
     else:
+        rs.ParentLayer(name, parent)
         layer = rs.LayerName(name)
 
     color = options.get('color', (0, 0, 0))
@@ -80,15 +89,23 @@ def bake_layer(from_layer, to_layer, options):
         rs.ObjectPrintWidthSource(x.Id, source_by_layer)
 
         rotation = get_user_text(x, 'patternRotation', default_rotation, float)
+        rotation = math.radians(rotation)
+        base_point = get_user_text(x, 'patternBasePoint', None, json.loads)
 
         pattern = options['pattern']
+        pattern_index = sc.doc.HatchPatterns.Find(pattern, True)
         scale = options['scale']
-        hatch_guid = rs.AddHatch(x.Id, pattern, scale=scale, rotation=rotation)
-        rs.ObjectLayer(hatch_guid, to_layer)
+        target_layer_index = sc.doc.Layers.FindByFullPath(to_layer, True)
 
-        hatch = sc.doc.Objects.Find(hatch_guid)
-        hatch.Attributes.DisplayOrder = draw_order
-        hatch.CommitChanges()
+        hatches = Rhino.Geometry.Hatch.Create(x.Geometry, pattern_index, rotation, scale)
+        for hatch in hatches:
+            h = sc.doc.Objects.AddHatch(hatch)
+            h = sc.doc.Objects.Find(h)
+            h.Attributes.LayerIndex = target_layer_index
+            h.Attributes.DisplayOrder = draw_order
+            if base_point:
+                h.HatchGeometry.BasePoint = point3d(base_point)
+            h.CommitChanges()
 
 
 def sync_code(code_def, sync_options):
@@ -97,6 +114,7 @@ def sync_code(code_def, sync_options):
 
     current_view_layers = rs.LayerChildren(layer_name)
     for x in current_view_layers:
+#        print('purging layer', x)
         rs.PurgeLayer(x)
 
     draw_order = 1
@@ -122,7 +140,6 @@ def sync_code(code_def, sync_options):
 
 
 def get_sisufile():
-    import json
     f = 'C:/Users/tmshv/Desktop/Projects/SisuSync/sisufile.json'
     return json.load(open(f, 'r'))
 
@@ -139,3 +156,4 @@ if __name__ == '__main__':
         if not rs.IsLayer(layer_name) and not add_code:
             continue
         sync_code(code, options)
+    sc.doc.Views.Redraw()
