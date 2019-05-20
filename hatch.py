@@ -1,4 +1,3 @@
-
 import scriptcontext as sc
 import rhinoscriptsyntax as rs
 import System
@@ -25,32 +24,6 @@ def load_system_hatch_patterns():
             hatch_pattern_index = sc.doc.HatchPatterns.Add(pattern)
             hatch_pattern = sc.doc.HatchPatterns.FindIndex(hatch_pattern_index)
 
-#layer_index = sc.doc.Layers.Add(layer_name, System.Drawing.Color.Black)
-#layer = sc.doc.Layers.Find(layer_name, True)
-
-#layer = sc.doc.Layers.Item[0]
-
-#for x in dir(rs):
-#    print(x)
-
-#print(dir(Rhino.DocObjects.Tables))
-#hpt = Rhino.DocObjects.Tables.HatchPatternTable
-#print(dir(hpt))
-#print(hpt.Item[0])
-#for x in xrange(hpt.Count)):
-#    print(x)
-
-
-#doc.HatchPatterns.Find(hatch_name, True)
-#for x in sc.doc.HatchPatterns:
-#    print(x)
-
-#f = 'C:\\Users\\tmshv\\Downloads\\hatchpatterns_1033.pat'
-#xs = rs.AddHatchPatterns(f)
-#print(xs)
-#for x in xs:
-#    print(x)
-#print(rs.AddHatchPatterns())
 
 def setup_layer(name, options):
     parent = options.get('parent', None)
@@ -68,12 +41,8 @@ def setup_layer(name, options):
     rs.LayerColor(name, color)
     rs.LayerPrintWidth(name, print_width)
     rs.LayerLinetype(name, linetype)
-    
-    return layer
 
-    #print(type(main_layer))
-    #x = sc.doc.Layers.FindIndex(1)
-    #print(x)
+    return layer
 
 
 def get_user_text(obj, key, default_value=None, fn=None):
@@ -83,6 +52,7 @@ def get_user_text(obj, key, default_value=None, fn=None):
     if not fn:
         return val
     return fn(val)
+
 
 def bake_layer(from_layer, to_layer, options):
 #    print('baking %s to %s' % (from_layer, to_layer))
@@ -111,12 +81,6 @@ def bake_layer(from_layer, to_layer, options):
 
         rotation = get_user_text(x, 'patternRotation', default_rotation, float)
 
-#        print(options)
-#        print('type', type(x).__name__)
-#        print('ObjectType', x.ObjectType)
-#        print('GeometryType', type(x.Geometry).__name__)
-#        print('')
-
         pattern = options['pattern']
         scale = options['scale']
         hatch_guid = rs.AddHatch(x.Id, pattern, scale=scale, rotation=rotation)
@@ -125,53 +89,6 @@ def bake_layer(from_layer, to_layer, options):
         hatch = sc.doc.Objects.Find(hatch_guid)
         hatch.Attributes.DisplayOrder = draw_order
         hatch.CommitChanges()
-
-#import rhinoscriptsyntax as rs
-# |   curves = rs.GetObjects("Select closed planar curves", rs.filter.curve)
-# |        if curves:
-# |                if rs.IsHatchPattern("Grid"):
-# |                    rs.AddHatches( curves, "Grid" )
-# |                else:
-# |                    rs.AddHatches( curves, rs.CurrentHatchPattern() )
-
-#import rhinoscriptsyntax as rs
-# |            circle = rs.AddCircle(rs.WorldXYPlane(), 10.0)
-# |            if rs.IsHatchPattern("Grid"):
-# |                rs.AddHatch( circle, "Grid" )
-# |            else:
-# |                rs.AddHatch( circle, rs.CurrentHatchPattern() )
-
-
-#import Rhino
-# 
-#if (curve and curve.IsClosed and curve.IsPlanar()):
-#    hatches = Rhino.Geometry.Hatch.Create(curve, 0, 0, 1)
-#    
-# for hatch in hatches:
-#         scriptcontext.doc.Objects.AddHatch(hatch)
-
-def set_layer_draw_order(layer_name, value):
-#    m_line_objects[1].Attributes.DisplayOrder = 1
-#    m_line_objects[1].CommitChanges()
-#    doc.Views.Redraw()
-#    Pause("Second (blue) line now in front.  Any key to continue ...")
-
-    xs = sc.doc.Objects.FindByLayer(layer_name)
-    print(layer_name, xs)
-#    for obj in xs:
-#        print(obj, value)
-#        guid = doc.Objects.AddLine(from_pt, to_pt)
-#        obj = doc.Objects.Find(guid)
-#        obj.Attributes.DisplayOrder = value
-#        obj.Attributes.ObjectColor = color
-#        obj.Attributes.ColorSource = ObjectColorSource.ColorFromObject
-#        obj.CommitChanges()
-
-#    for i in range(1, m_line_objects.Count):
-#        m_line_objects[i].Attributes.DisplayOrder = i
-#        m_line_objects[i].CommitChanges()
-#
-#    doc.Views.Redraw()
 
 
 def sync_code(code_def, sync_options):
@@ -186,24 +103,24 @@ def sync_code(code_def, sync_options):
     for view in code_def['view']:
         view_layer_name = layer_name + view['layerSuffix']
         render_type, render_options = view['render']
+
         view_layer_options = {}
         view_layer_options.update(render_options)
         view_layer_options['parent'] = layer_name
         view_layer_options['locked'] = True
-
         view_layer_name = setup_layer(view_layer_name, view_layer_options)
 
         bake_options = {}
         bake_options.update(render_options)
         bake_options.update(code['properties'])
         bake_options['drawOrder'] = draw_order
-        bake_layer(layer_name, view_layer_name, bake_options)
-        
-#        set_layer_draw_order(view_layer_name, draw_order)
+        objects = bake_layer(layer_name, view_layer_name, bake_options)
+
         draw_order += 1
-        
+
     rs.ExpandLayer(layer_name, False)
-    
+
+
 def get_sisufile():
     import json
     f = 'C:/Users/tmshv/Desktop/Projects/SisuSync/sisufile.json'
@@ -211,13 +128,7 @@ def get_sisufile():
 
 if __name__ == '__main__':
     load_system_hatch_patterns()
-#    print('Patterns:')
-#    for x in rs.HatchPatternNames():
-#        print(x)
-#
-#    print('rs.CurrentHatchPattern()', rs.CurrentHatchPattern())
-#    print('rs.IsHatchPattern("Grid")', rs.IsHatchPattern("Grid"))
-    
+
     config = get_sisufile()
     codes = config['code']
 
