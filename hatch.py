@@ -19,6 +19,17 @@ system_hatch_pattern_names = [
 ]
 
 
+class HatchProxy:
+    def __init__(self, hatch):
+        self.hatch = hatch
+        self.hash = None
+
+    def get_hash(self):
+        if not self.hash:
+            self.hash = get_bounding_box_hash(self.hatch.GetBoundingBox(True))
+        return self.hash
+
+
 def load_system_hatch_patterns():
     for name in system_hatch_pattern_names:
         hatch_pattern = sc.doc.HatchPatterns.FindName(name)
@@ -30,6 +41,24 @@ def load_system_hatch_patterns():
 
 def point3d(param):
     return Rhino.Geometry.Point3d(param[0], param[1], param[2])
+
+
+def get_bounding_box_hash(bb):
+    n = 10
+    ns = [
+        bb.Min.X, bb.Min.Y, bb.Min.Z,
+        bb.Max.X, bb.Max.Y, bb.Max.Z,
+        bb.Area,
+    ]
+    return '+'.join([str(round(x, n)) for x in ns])
+
+
+def find_by_bounding_box(items, bb):
+    hash = get_bounding_box_hash(bb)
+    for x in items:
+        if hash == x.get_hash():
+            return x
+    return None
 
 
 def setup_layer(name, options):
@@ -63,6 +92,38 @@ def get_user_text(obj, key, default_value=None, fn=None):
     return fn(val)
 
 
+def get_layer_objects(layer_name, match_fn):
+    xs = sc.doc.Objects.FindByLayer(layer_name)
+    return [x for x in xs if match_fn(x)]
+
+
+def is_match_for_hatch_source(x):
+    if x.ObjectType != Rhino.DocObjects.ObjectType.Curve:
+        return False
+    if not x.Geometry.IsClosed:
+        return False
+    if not x.Geometry.IsPlanar():
+        return False
+    return True
+
+
+def get_custom_objects(objects, options):
+    default_rotation = options['patternRotation']
+    default_base_point = point3d(options['patternBasePoint'])
+    result = []
+    for x in objects:
+        attrs = {}
+        rotation = get_user_text(x, 'patternRotation', None, float)
+        if rotation or rotation == default_rotation:
+            attrs['patternRotation'] = math.radians(rotation)
+        base_point = get_user_text(x, 'patternBasePoint', None, json.loads)
+        if base_point and base_point != default_base_point:
+            attrs['patternBasePoint'] = point3d(base_point)
+        if attrs:
+            result.append((x, attrs))
+    return result
+
+
 def bake_layer(from_layer, to_layer, options):
 #    print('baking %s to %s' % (from_layer, to_layer))
     source_by_layer = 0
@@ -71,41 +132,65 @@ def bake_layer(from_layer, to_layer, options):
 #    3 = By Parent
 
     default_rotation = options['patternRotation']
+    scale = options['scale']
     draw_order = options['drawOrder']
+    pattern = options['pattern']
+    target_layer_index = sc.doc.Layers.FindByFullPath(to_layer, True)
+    pattern_index = sc.doc.HatchPatterns.Find(pattern, True)
+    if pattern_index < 0:
+        print('Hatch pattern does not exist')
+        return
 
-    xs = sc.doc.Objects.FindByLayer(from_layer)
-    for x in xs:
-        if x.ObjectType != Rhino.DocObjects.ObjectType.Curve:
-            continue
-            
-        if not x.Geometry.IsClosed:
-            continue
+    source_objects = get_layer_objects(from_layer, is_match_for_hatch_source)
 
-        if not x.Geometry.IsPlanar():
-            continue
-
+    # Fix source layer objects
+    for x in source_objects:
         rs.ObjectLinetypeSource(x.Id, source_by_layer)
         rs.ObjectColorSource(x.Id, source_by_layer)
         rs.ObjectPrintWidthSource(x.Id, source_by_layer)
 
-        rotation = get_user_text(x, 'patternRotation', default_rotation, float)
-        rotation = math.radians(rotation)
-        base_point = get_user_text(x, 'patternBasePoint', None, json.loads)
+    curves = [x.Geometry for x in source_objects]
+    hatches = Rhino.Geometry.Hatch.Create(curves, pattern_index, default_rotation, scale)
 
-        pattern = options['pattern']
-        pattern_index = sc.doc.HatchPatterns.Find(pattern, True)
-        scale = options['scale']
-        target_layer_index = sc.doc.Layers.FindByFullPath(to_layer, True)
+    custom_objects = get_custom_objects(source_objects, options)
+    proxies = [HatchProxy(x) for x in hatches]
+    for x, attrs in custom_objects:
+        rotation = attrs.get('patternRotation')
+        base_point = attrs.get('patternBasePoint')
+        target = find_by_bounding_box(proxies, x.Geometry.GetBoundingBox(True))
+        print('find hatch', attrs, target is not None)
 
-        hatches = Rhino.Geometry.Hatch.Create(x.Geometry, pattern_index, rotation, scale)
-        for hatch in hatches:
-            h = sc.doc.Objects.AddHatch(hatch)
-            h = sc.doc.Objects.Find(h)
-            h.Attributes.LayerIndex = target_layer_index
-            h.Attributes.DisplayOrder = draw_order
-            if base_point:
-                h.HatchGeometry.BasePoint = point3d(base_point)
-            h.CommitChanges()
+        if not target:
+            continue
+
+        if rotation:
+            target.hatch.PatternRotation = rotation
+        if base_point:
+            target.hatch.HatchGeometry.BasePoint = base_point
+
+    # Add created hatches to rhino doc + set attributes
+    for hatch in hatches:
+        hatch_guid = sc.doc.Objects.AddHatch(hatch)
+        hatch_obj = sc.doc.Objects.Find(hatch_guid)
+        hatch_obj.Attributes.LayerIndex = target_layer_index
+        hatch_obj.Attributes.DisplayOrder = draw_order
+        hatch_obj.CommitChanges()
+
+    # source_objects = sc.doc.Objects.FindByLayer(from_layer)
+    # for x in source_objects:
+    
+
+        # pattern = options['pattern']
+        # pattern_index = sc.doc.HatchPatterns.Find(pattern, True)
+
+        # hatches = Rhino.Geometry.Hatch.Create(x.Geometry, pattern_index, rotation, scale)
+        # for hatch in hatches:
+        #     h = sc.doc.Objects.AddHatch(hatch)
+        #     h = sc.doc.Objects.Find(h)
+
+        #     if base_point:
+        #         h.HatchGeometry.BasePoint = point3d(base_point)
+        #     h.CommitChanges()
 
 
 def sync_code(code_def, sync_options):
@@ -157,3 +242,13 @@ if __name__ == '__main__':
             continue
         sync_code(code, options)
     sc.doc.Views.Redraw()
+
+#     if __name__ == '__main__':
+#     run('Layer 01', 'Plus')
+#     run('Layer 02', 'Grid')
+#     run('Layer 03', 'Solid')
+#     sc.doc.Views.Redraw()
+
+# #    for x in xrange(1000):
+# #        run()
+
