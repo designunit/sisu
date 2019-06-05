@@ -166,7 +166,7 @@ def bake_layer(from_layer, to_layer, options):
         if rotation:
             target.hatch.PatternRotation = rotation
         if base_point:
-            target.hatch.HatchGeometry.BasePoint = base_point
+            target.hatch.BasePoint = base_point
 
     # Add created hatches to rhino doc + set attributes
     for hatch in hatches:
@@ -175,22 +175,6 @@ def bake_layer(from_layer, to_layer, options):
         hatch_obj.Attributes.LayerIndex = target_layer_index
         hatch_obj.Attributes.DisplayOrder = draw_order
         hatch_obj.CommitChanges()
-
-    # source_objects = sc.doc.Objects.FindByLayer(from_layer)
-    # for x in source_objects:
-    
-
-        # pattern = options['pattern']
-        # pattern_index = sc.doc.HatchPatterns.Find(pattern, True)
-
-        # hatches = Rhino.Geometry.Hatch.Create(x.Geometry, pattern_index, rotation, scale)
-        # for hatch in hatches:
-        #     h = sc.doc.Objects.AddHatch(hatch)
-        #     h = sc.doc.Objects.Find(h)
-
-        #     if base_point:
-        #         h.HatchGeometry.BasePoint = point3d(base_point)
-        #     h.CommitChanges()
 
 
 def sync_code(code_def, sync_options):
@@ -215,7 +199,7 @@ def sync_code(code_def, sync_options):
 
         bake_options = {}
         bake_options.update(render_options)
-        bake_options.update(code['properties'])
+        bake_options.update(code_def['properties'])
         bake_options['drawOrder'] = draw_order
         objects = bake_layer(layer_name, view_layer_name, bake_options)
 
@@ -224,31 +208,84 @@ def sync_code(code_def, sync_options):
     rs.ExpandLayer(layer_name, False)
 
 
+def get_sync_options():
+    return {
+        'add_layer': True,
+    }, Rhino.Commands.Result.Success
+
+
+    gp = Rhino.Input.Custom.GetOption()
+    gp.SetCommandPrompt('SisuSync')
+
+#    intOption = Rhino.Input.Custom.OptionInteger(1, 1, 99)
+#    dblOption = Rhino.Input.Custom.OptionDouble(2.2, 0, 99.9)
+    add_missing_layer = Rhino.Input.Custom.OptionToggle(True, 'Yes', 'No')
+#    listValues = "Item0", "Item1", "Item2", "Item3", "Item4"
+
+#    gp.AddOptionInteger("Integer", intOption)
+#    gp.AddOptionDouble("Double", dblOption)
+    gp.AddOptionToggle('Add', add_missing_layer)
+#    listIndex = 3
+#    opList = gp.AddOptionList("List", listValues, listIndex)
+#    while True:
+    # perform the get operation. This will prompt the user to
+    # input a point, but also allow for command line options
+    # defined above
+    result = gp.Get()
+
+    if gp.CommandResult() != Rhino.Commands.Result.Success:
+        return None, gp.CommandResult()
+
+#        print " Integer =", intOption.CurrentValue
+#        print " Double =", dblOption.CurrentValue
+
+    options = {
+        'add_layer': add_missing_layer.CurrentValue,
+    }
+
+#        print " List =", listValues[listIndex]
+#        if get_rc==Rhino.Input.GetResult.Point:
+#            point = gp.Point()
+#            scriptcontext.doc.Objects.AddPoint(point)
+#            scriptcontext.doc.Views.Redraw()
+#            print "Command line option values are"
+#            print " Integer =", intOption.CurrentValue
+#            print " Double =", dblOption.CurrentValue
+#            print " Boolean =", boolOption.CurrentValue
+#            print " List =", listValues[listIndex]
+#        elif get_rc==Rhino.Input.GetResult.Option:
+#            if gp.OptionIndex()==opList:
+#              listIndex = gp.Option().CurrentListOptionIndex
+#            continue
+#        break
+    return options, Rhino.Commands.Result.Success
+
+
 def get_sisufile():
     f = 'C:/Users/tmshv/Desktop/Projects/SisuSync/sisufile.json'
     return json.load(open(f, 'r'))
 
-if __name__ == '__main__':
+
+def main():
     load_system_hatch_patterns()
 
     config = get_sisufile()
     codes = config['code']
 
+    user_options, status = get_sync_options()
+    print(user_options, status)
+
+    if status != Rhino.Commands.Result.Success:
+        return
+
     options = {}
-    add_code = True
     for code in codes:
         layer_name, layer_options = code['layer']
-        if not rs.IsLayer(layer_name) and not add_code:
+        if not rs.IsLayer(layer_name) and not user_options['add_layer']:
             continue
         sync_code(code, options)
     sc.doc.Views.Redraw()
 
-#     if __name__ == '__main__':
-#     run('Layer 01', 'Plus')
-#     run('Layer 02', 'Grid')
-#     run('Layer 03', 'Solid')
-#     sc.doc.Views.Redraw()
 
-# #    for x in xrange(1000):
-# #        run()
-
+if __name__ == '__main__':
+    main()
