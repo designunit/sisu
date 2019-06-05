@@ -262,7 +262,9 @@ def get_sync_options():
 
 
 def get_sisufile():
-    f = 'C:/Users/tmshv/Desktop/Projects/SisuSync/sisufile.json'
+    f = rs.GetDocumentUserText('sisuSyncFile')
+    if not f:
+        return None
     return json.load(open(f, 'r'))
 
 
@@ -270,6 +272,9 @@ def main():
     load_system_hatch_patterns()
 
     config = get_sisufile()
+    if not config:
+        print('sisu file not configured')
+        return Rhino.Commands.Result.Failure
     codes = config['code']
 
     user_options, status = get_sync_options()
