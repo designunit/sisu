@@ -275,7 +275,7 @@ def main():
     if not config:
         print('sisu file not configured')
         return Rhino.Commands.Result.Failure
-    codes = config['code']
+    codes = config['data']
 
     user_options, status = get_sync_options()
     print(user_options, status)
