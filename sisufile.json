@@ -1,0 +1,38 @@
+{
+    "version": "0",
+    "code": [
+        {
+            "layer": ["Default", {
+                "color": [255, 0, 0], 
+                "lineType": "continuous", 
+                "lineWeight": 1
+            }],
+            "code": "X",
+            "properties": {
+                "patternRotation": 0,
+                "patternBasePoint": [0, 0, 0]
+            },
+            "view": [
+                {
+                    "layerSuffix": "_SOLID",
+                    "render": ["hatch", {
+                        "pattern": "Solid",
+                        "scale": 1,
+                        "color": [10, 190, 10],
+                        "lineWeight": 0.13
+                    }]
+                },
+                {
+                    "layerSuffix": "_HATCH",
+                    "render": ["hatch", {
+                        "pattern": "Grid",
+                        "scale": 1,
+                        "color": [0, 255, 0],
+                        "lineWeight": 0.1
+                    }]
+                }
+            ],
+            "options": {}
+        }
+    ]
+}
