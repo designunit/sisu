@@ -1,6 +1,6 @@
 {
     "version": "0",
-    "code": [
+    "data": [
         {
             "layer": ["Default", {
                 "color": [255, 0, 0], 
