@@ -2,8 +2,6 @@ import csv
 import json
 import re
 
-filepath = 'sisufile.json'
-
 
 def read_sisufile(filepath):
     if filepath.endswith('.json'):
@@ -19,6 +17,29 @@ def read_sisufile_json(filepath):
 
 def read_sisufile_csv(filepath):
     def row(x):
+        view = []
+        if x['solid_color'] != '':
+            view.append({
+                'layerSuffix': '_SOLID',
+                'render': ['hatch', {
+                    'pattern': 'Solid',
+                    'scale': 1,
+                    'color': create_color(x['solid_color']),
+                    'lineWeight': 0.1
+                }]
+            })
+
+        if x['PAT_color'] != '':
+            view.append({
+                'layerSuffix': '_HATCH',
+                'render': ['hatch', {
+                    'pattern': x['PAT_name'],
+                    'scale': x['PAT_scale'],
+                    'color': create_color(x['PAT_color']),
+                    'lineWeight': float(x['PAT_lineweight'])
+                }],
+            })
+
         return {
             'layer': [x['layer'], {
                 'color': create_color(x['color']),
@@ -30,32 +51,10 @@ def read_sisufile_csv(filepath):
                 'patternRotation': 0,
                 'patternBasePoint': [0, 0, 0]
             },
-            'view': [
-                {
-                    'layerSuffix': '_SOLID',
-                    'render': ['hatch', {
-                        'pattern': 'Solid',
-                        'scale': 1,
-                        'color': create_color(x['solid_color']),
-                        'lineWeight': 0.1
-                    }]
-                },
-                {
-                    'layerSuffix': '_HATCH',
-                    'render': ['hatch', {
-                        'pattern': x['PAT_name'],
-                        'scale': x['PAT_scale'],
-                        'color': create_color(x['PAT_color']),
-                        'lineWeight': float(x['PAT_lineweight'])
-                    }],
-                }
-             ],
+            'view': view,
             'options': {}
         }
-
-
     reader = csv.DictReader(open(filepath, 'r'))
-
     return [row(x) for x in reader]
 
 
@@ -67,7 +66,5 @@ def create_color(value):
 
 
 if __name__ == '__main__':
-    color_red = 'black 123'
-
-    print (create_color(color_red))
+    filepath = 'sisufile.csv'
     print(read_sisufile(filepath))
