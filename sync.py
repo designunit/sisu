@@ -33,10 +33,10 @@ def read_sisufile_csv(filepath):
             view.append({
                 'layerSuffix': '_HATCH',
                 'render': ['hatch', {
-                    'pattern': x['PAT_name'],
-                    'scale': x['PAT_scale'],
-                    'color': create_color(x['PAT_color']),
-                    'lineWeight': float(x['PAT_lineweight'])
+                    'pattern': x['pattern_name'],
+                    'scale': x['pattern_scale'],
+                    'color': create_color(x['pattern_color']),
+                    'lineWeight': float(x['pattern_lineweight'])
                 }],
             })
 
