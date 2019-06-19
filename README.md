@@ -1,5 +1,12 @@
 # SISU Sync for Rhino plugin
 
+## Installation
+
+0. Удалить предыдущую версию плагина в папке `%AppData%\Roaming\McNeel\Rhinoceros\6.0\Plug-ins\PythonPlugins`
+1. Запустить `rhi`-файл
+2. Перезапустить Райно
+3. Выполнить команду `EditPythonScript`. Откроется окно с редактором. Его надо закрыть
+
 ## Commands
 
 ### `SisuSetup`
