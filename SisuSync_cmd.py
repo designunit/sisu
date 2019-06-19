@@ -270,7 +270,7 @@ def RunCommand( is_interactive ):
 
     config = get_sisufile()
     if not config:
-        print('sisu file not configured')
+        print('Sisufile not configured')
         return Rhino.Commands.Result.Failure
     codes = config['data']
 
