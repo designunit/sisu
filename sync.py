@@ -29,12 +29,12 @@ def read_sisufile_csv(filepath):
                 }]
             })
 
-        if x['PAT_color'] != '':
+        if x['pattern_color'] != '':
             view.append({
                 'layerSuffix': '_HATCH',
                 'render': ['hatch', {
                     'pattern': x['pattern_name'],
-                    'scale': x['pattern_scale'],
+                    'scale': float(x['pattern_scale']),
                     'color': create_color(x['pattern_color']),
                     'lineWeight': float(x['pattern_lineweight'])
                 }],
@@ -54,12 +54,17 @@ def read_sisufile_csv(filepath):
             'view': view,
             'options': {}
         }
+
     reader = csv.DictReader(open(filepath, 'r'))
-    return [row(x) for x in reader]
+    return {
+        'version': '0',
+        'data': [row(x) for x in reader],
+    }
 
 
 def create_color(value):
-    if re.match(r'\w+', value):
+    print(value)
+    if re.match(r'[a-zA-Z]+', value):
         return [0, 0, 0]
     color_list = value.split(',')
     return [int(channel) for channel in color_list]
@@ -67,4 +72,5 @@ def create_color(value):
 
 if __name__ == '__main__':
     filepath = 'sisufile.csv'
-    print(read_sisufile(filepath))
+    filepath = 'DU4_OFFICE.csv'
+    print(json.dumps(read_sisufile(filepath), indent=4))

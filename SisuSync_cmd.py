@@ -4,8 +4,9 @@ import System
 import Rhino
 import json
 import math
+import sync
 
-
+__commandname__ = 'SisuSync'
 system_hatch_pattern_names = [
     'Dash',
     'Grid',
@@ -142,6 +143,9 @@ def bake_layer(from_layer, to_layer, options):
         return
 
     source_objects = get_layer_objects(from_layer, is_match_for_hatch_source)
+    if len(source_objects) == 0:
+        print('Layer %s has no objects to bake' % from_layer)
+        return
 
     # Fix source layer objects
     for x in source_objects:
@@ -265,10 +269,10 @@ def get_sisufile():
     f = rs.GetDocumentUserText('sisuSyncFile')
     if not f:
         return None
-    return json.load(open(f, 'r'))
+    return sync.read_sisufile(f)
 
 
-def main():
+def RunCommand( is_interactive ):
     load_system_hatch_patterns()
 
     config = get_sisufile()
@@ -281,16 +285,17 @@ def main():
     print(user_options, status)
 
     if status != Rhino.Commands.Result.Success:
-        return
+        return status
 
     options = {}
     for code in codes:
         layer_name, layer_options = code['layer']
         if not rs.IsLayer(layer_name) and not user_options['add_layer']:
             continue
-        sync_code(code, options)
+        try:
+            sync_code(code, options)
+        except Exception as e:
+            print('Exception', e)
     sc.doc.Views.Redraw()
 
-
-if __name__ == '__main__':
-    main()
+    return Rhino.Commands.Result.Success
