@@ -68,7 +68,6 @@ def read_sisufile_csv(filepath):
 
 
 def create_color(value):
-    print(value)
     if re.match(r'[a-zA-Z]+', value):
         return [0, 0, 0]
     color_list = value.split(',')
