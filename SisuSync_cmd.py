@@ -4,7 +4,7 @@ import System
 import Rhino
 import json
 import math
-import sync
+from rhinolib import get_sisufile
 
 __commandname__ = 'SisuSync'
 system_hatch_pattern_names = [
@@ -263,13 +263,6 @@ def get_sync_options():
 #            continue
 #        break
     return options, Rhino.Commands.Result.Success
-
-
-def get_sisufile():
-    f = rs.GetDocumentUserText('sisuSyncFile')
-    if not f:
-        return None
-    return sync.read_sisufile(f)
 
 
 def RunCommand( is_interactive ):

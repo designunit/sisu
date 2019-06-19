@@ -1,13 +1,18 @@
 import csv
 import json
 import re
+import os
 
 
 def read_sisufile(filepath):
+    if not os.path.isfile(filepath):
+        return None
+
     if filepath.endswith('.json'):
         return read_sisufile_json(filepath)
     if filepath.endswith('.csv'):
         return read_sisufile_csv(filepath)
+
     return None
 
 
