@@ -67,7 +67,6 @@ def setup_layer(name, options):
     locked = options.get('locked', False)
 
     if not rs.IsLayer(name):
-#        print('adding layer', parent, name)
         layer = rs.AddLayer(name=name, parent=parent, locked=locked)
     else:
         rs.ParentLayer(name, parent)
@@ -112,7 +111,6 @@ def get_custom_objects(objects, options):
 
 
 def bake_layer(from_layer, to_layer, options):
-#    print('baking %s to %s' % (from_layer, to_layer))
     source_by_layer = 0
 #    0 = By Layer
 #    1 = By Object
@@ -148,7 +146,6 @@ def bake_layer(from_layer, to_layer, options):
         rotation = attrs.get('patternRotation')
         base_point = attrs.get('patternBasePoint')
         target = find_by_bounding_box(proxies, x.Geometry.GetBoundingBox(True))
-        print('find hatch', attrs, target is not None)
 
         if not target:
             continue
@@ -173,7 +170,6 @@ def sync_code(code_def, sync_options):
 
     current_view_layers = rs.LayerChildren(layer_name)
     for x in current_view_layers:
-#        print('purging layer', x)
         rs.PurgeLayer(x)
 
     draw_order = 1
@@ -261,8 +257,6 @@ def RunCommand( is_interactive ):
     codes = config['data']
 
     user_options, status = get_sync_options()
-    print(user_options, status)
-
     if status != Rhino.Commands.Result.Success:
         return status
 
