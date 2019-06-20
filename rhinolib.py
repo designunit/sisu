@@ -1,4 +1,5 @@
 import rhinoscriptsyntax as rs
+import scriptcontext as sc
 import sync
 
 SISUFILE_KEY = 'sisuSyncFile'
@@ -22,3 +23,9 @@ def get_user_text(obj, key, default_value=None, fn=None):
     if not fn:
         return val
     return fn(val)
+
+
+def find_layer_objects(match_fn, layer_name):
+    xs = sc.doc.Objects.FindByLayer(layer_name)
+
+    return [x for x in xs if match_fn(x)]

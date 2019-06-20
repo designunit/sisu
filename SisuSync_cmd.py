@@ -4,7 +4,7 @@ import System
 import Rhino
 import json
 import math
-from rhinolib import get_sisufile, get_user_text
+from rhinolib import get_sisufile, get_user_text, find_layer_objects
 
 __commandname__ = 'SisuSync'
 system_hatch_pattern_names = [
@@ -84,11 +84,6 @@ def setup_layer(name, options):
     return layer
 
 
-def get_layer_objects(layer_name, match_fn):
-    xs = sc.doc.Objects.FindByLayer(layer_name)
-    return [x for x in xs if match_fn(x)]
-
-
 def is_match_for_hatch_source(x):
     if x.ObjectType != Rhino.DocObjects.ObjectType.Curve:
         return False
@@ -133,7 +128,7 @@ def bake_layer(from_layer, to_layer, options):
         print('Hatch pattern does not exist')
         return
 
-    source_objects = get_layer_objects(from_layer, is_match_for_hatch_source)
+    source_objects = find_layer_objects(is_match_for_hatch_source, from_layer)
     if len(source_objects) == 0:
         print('Layer %s has no objects to bake' % from_layer)
         return
