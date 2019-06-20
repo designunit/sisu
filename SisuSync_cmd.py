@@ -194,56 +194,29 @@ def sync_code(code_def, sync_options):
     rs.ExpandLayer(layer_name, False)
 
 
-def get_sync_options():
-    return {
-        'add_layer': True,
-    }, Rhino.Commands.Result.Success
-
-
+def get_sync_options(modes):
     gp = Rhino.Input.Custom.GetOption()
-    gp.SetCommandPrompt('SisuSync')
+    gp.SetCommandPrompt(__commandname__)
+    gp.AcceptNothing(True)
 
-#    intOption = Rhino.Input.Custom.OptionInteger(1, 1, 99)
-#    dblOption = Rhino.Input.Custom.OptionDouble(2.2, 0, 99.9)
-    add_missing_layer = Rhino.Input.Custom.OptionToggle(True, 'Yes', 'No')
-#    listValues = "Item0", "Item1", "Item2", "Item3", "Item4"
+    mode_index = 0
+    mode_op = gp.AddOptionList('Mode', modes, mode_index)
 
-#    gp.AddOptionInteger("Integer", intOption)
-#    gp.AddOptionDouble("Double", dblOption)
-    gp.AddOptionToggle('Add', add_missing_layer)
-#    listIndex = 3
-#    opList = gp.AddOptionList("List", listValues, listIndex)
-#    while True:
-    # perform the get operation. This will prompt the user to
-    # input a point, but also allow for command line options
-    # defined above
-    result = gp.Get()
+    while True:
+        result = gp.Get()
+        if gp.CommandResult() != Rhino.Commands.Result.Success:
+            return None, gp.CommandResult()
 
-    if gp.CommandResult() != Rhino.Commands.Result.Success:
-        return None, gp.CommandResult()
-
-#        print " Integer =", intOption.CurrentValue
-#        print " Double =", dblOption.CurrentValue
+        i = gp.OptionIndex()
+        if i == -1:
+            break
+        elif i == mode_op:
+            mode_index = gp.Option().CurrentListOptionIndex
+            continue
 
     options = {
-        'add_layer': add_missing_layer.CurrentValue,
+        'mode': modes[mode_index],
     }
-
-#        print " List =", listValues[listIndex]
-#        if get_rc==Rhino.Input.GetResult.Point:
-#            point = gp.Point()
-#            scriptcontext.doc.Objects.AddPoint(point)
-#            scriptcontext.doc.Views.Redraw()
-#            print "Command line option values are"
-#            print " Integer =", intOption.CurrentValue
-#            print " Double =", dblOption.CurrentValue
-#            print " Boolean =", boolOption.CurrentValue
-#            print " List =", listValues[listIndex]
-#        elif get_rc==Rhino.Input.GetResult.Option:
-#            if gp.OptionIndex()==opList:
-#              listIndex = gp.Option().CurrentListOptionIndex
-#            continue
-#        break
     return options, Rhino.Commands.Result.Success
 
 
@@ -256,15 +229,30 @@ def RunCommand( is_interactive ):
         return Rhino.Commands.Result.Failure
     codes = config['data']
 
-    user_options, status = get_sync_options()
+    mode_full = 'Full'
+    mode_existing = 'Existing'
+    mode_current = 'Current'
+    modes = (mode_full, mode_existing, mode_current)
+
+    user_options, status = get_sync_options(modes)
     if status != Rhino.Commands.Result.Success:
         return status
 
+    add_layer_enabled = user_options['mode'] == mode_full
+    layer_scope = []
+    if user_options['mode'] == mode_current:
+        layer_scope = [rs.CurrentLayer()]
+    else:
+        layer_scope = rs.LayerNames()
+    
     options = {}
     for code in codes:
         layer_name, layer_options = code['layer']
-        if not rs.IsLayer(layer_name) and not user_options['add_layer']:
+        layer_exists = rs.IsLayer(layer_name)
+        valid_layer = (layer_name in layer_scope) or (not layer_exists and add_layer_enabled)
+        if not valid_layer:
             continue
+
         try:
             sync_code(code, options)
         except Exception as e:
