@@ -4,7 +4,7 @@ import System
 import Rhino
 import json
 import math
-from rhinolib import get_sisufile
+from rhinolib import get_sisufile, get_user_text
 
 __commandname__ = 'SisuSync'
 system_hatch_pattern_names = [
@@ -82,15 +82,6 @@ def setup_layer(name, options):
     rs.LayerLinetype(name, linetype)
 
     return layer
-
-
-def get_user_text(obj, key, default_value=None, fn=None):
-    val = rs.GetUserText(obj.Id, key)
-    if not val:
-        return default_value
-    if not fn:
-        return val
-    return fn(val)
 
 
 def get_layer_objects(layer_name, match_fn):
