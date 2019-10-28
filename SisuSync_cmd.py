@@ -222,7 +222,6 @@ def get_sync_options(modes):
 
 def RunCommand( is_interactive ):
     load_system_hatch_patterns()
-
     config = get_sisufile()
     if not config:
         print('Sisufile not configured')
@@ -260,3 +259,6 @@ def RunCommand( is_interactive ):
     sc.doc.Views.Redraw()
 
     return Rhino.Commands.Result.Success
+
+if __name__ == '__main__':
+    RunCommand(None)
