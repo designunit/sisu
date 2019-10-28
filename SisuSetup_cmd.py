@@ -11,7 +11,6 @@ __commandname__ = 'SisuSetup'
 
 def RunCommand( is_interactive ):
     file = rs.GetString('Sisufile path')
-
     if not file:
         return None, Rhino.Commands.Result.Cancel
 
