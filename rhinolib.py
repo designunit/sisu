@@ -12,7 +12,6 @@ def get_sisufile():
     return sync.read_sisufile(f)
 
 
-
 def set_sisufile(f):
     rs.SetDocumentUserText(SISUFILE_KEY, f)
 
