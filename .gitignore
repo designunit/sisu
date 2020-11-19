@@ -1,1 +1,3 @@
-/git_ignore
+.idea
+__pycache__
+*.rhi
