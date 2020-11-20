@@ -2,18 +2,29 @@ import csv
 import json
 import re
 import os
-
+from get_airtable_data import get_data
 
 def read_sisufile(filepath):
     if not os.path.isfile(filepath):
         return None
 
     if filepath.endswith('.json'):
-        return read_sisufile_json(filepath)
+        json_file = json.load(open(filepath, 'r'))
+        if json_file['version'] == '0.1':
+            if json_file.get('options').get('provider'):
+                return get_data_from_airtable(json_file)
+        else:
+            return read_sisufile_json(filepath)
     if filepath.endswith('.csv'):
         return read_sisufile_csv(filepath)
 
     return None
+
+def get_data_from_airtable(file):
+    table_token = file['options']['provider']['apiKey']
+    table_id = file['options']['provider']['baseId']
+    table_name = file['options']['provider']['table']
+    return get_data(table_token, table_id, table_name)
 
 
 def read_sisufile_json(filepath):
