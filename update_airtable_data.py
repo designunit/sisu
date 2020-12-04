@@ -19,27 +19,6 @@ def get_row_id(table_dict, code):
             return value['id']
 
 
-def update_airtable(airtable_token, airtable_id, airtable_name, line_id, column_name, cell_value):
-    headers = {
-        'Authorization': '%s' % airtable_token,
-        'Content-Type': 'application/json',
-    }
-
-    data = {
-        "records": [
-            {
-                "id": "%s" % line_id,
-                "fields": {
-                    "%s" % column_name: "%s" % cell_value,
-                }
-            }
-        ]
-    }
-
-    requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
-                   data=json.dumps(data))
-
-
 def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
     headers = {
         'Authorization': '%s' % airtable_token,
@@ -49,23 +28,59 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
     return response.json()
 
 
-list_of_changes = [
-    {
-        'code': 'B_BKb',
-        'column': 'name',
-        'change': 'fsjadhfas'
-    },
-    {
-        'code': 'B_BKp',
-        'column': 'name',
-        'change': '34534'
+# list_of_changes = [
+#     {
+#         'code': 'B_BKb',
+#         'column': 'name',
+#         'change': 'fsjadhfas'
+#     },
+#     {
+#         'code': 'B_BKp',
+#         'column': 'name',
+#         'change': '34534'
+#     }
+#
+# ]
+
+
+def update_airtable(airtable_token, airtable_id, airtable_name, patch):
+    headers = {
+        'Authorization': '%s' % airtable_token,
+        'Content-Type': 'application/json',
     }
 
-]
+    print(patch['id'])
+
+    data = {
+        "records": [
+            {
+                "id": "%s" % patch['id'],
+                "fields": {
+                    "code": "%s" % patch['code'],
+                    "color": "%s" % patch['pattern'],
+                    'pattern': 'хач 1',
+                }
+            }
+        ]
+    }
+
+    requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
+                   data=json.dumps(data))
+
 
 token, table_id, table_name = unpack_file('update_airtable.json')
 
-for element in list_of_changes:
-    table_data = get_data_from_airtable(token, table_id, table_name)
-    id = get_row_id(table_data, element['code'])
-    update_airtable(token, table_id, table_name, id, element['column'], element['change'])
+if __name__ == '__main__':
+
+    patch_dict = [
+        {
+            'code': 'B_BKb',
+            'color': 'цвет изменен',
+            'pattern': 'хач 1',
+        }
+    ]
+
+    for element in patch_dict:
+        table_data = get_data_from_airtable(token, table_id, table_name)
+        element['id'] = get_row_id(table_data, element['code'])
+        update_airtable(token, table_id, table_name, element)
