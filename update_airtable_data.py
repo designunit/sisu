@@ -1,8 +1,8 @@
 import json
 import requests
-from airtable.airtable import Airtable
 
 
+# нужно для тестирования. на данном этапе инфа загружается из файла
 def unpack_file(filepath):
     file = json.load(open(filepath, 'r'))
 
@@ -13,13 +13,13 @@ def unpack_file(filepath):
     return token, id, table_name
 
 
-def update_airtable(airtable_token, airtable_id, airtable_name, column_name, cell_value):
-    # airtable = Airtable(airtable_id, airtable_name, airtable_token)
-    # record = airtable.match('code', 'B_BKb')
-    # fields = {column_name: cell_value}
-    # airtable.update(record['id'], fields)
-    # # print(airtable.get_all())
+def get_row_id(table_dict, code):
+    for value in table_dict['records']:
+        if value['fields']['code'] == '%s' % code:
+            return value['id']
 
+
+def update_airtable(airtable_token, airtable_id, airtable_name, line_id, column_name, cell_value):
     headers = {
         'Authorization': '%s' % airtable_token,
         'Content-Type': 'application/json',
@@ -28,37 +28,44 @@ def update_airtable(airtable_token, airtable_id, airtable_name, column_name, cel
     data = {
         "records": [
             {
-                "id": "recbzCbB1csb82W4N",
+                "id": "%s" % line_id,
                 "fields": {
-                    '%s' % column_name: '%s' % cell_value,
-                    "name": "2134",
-                    "units": "m",
-                    "size": "Ш=200, В=min 300, Д=500-1000",
-                    "description": "бордюр в плоскости мощения, гранит",
-                    "color": "#78683d",
-                    "lineWeight": 0.35,
-                    "lineType": "continuous",
-                    "img": [
-                        {
-                            "id": "attDJYI4TkrbtJkrV"
-                        }
-                    ],
-                    "type": [
-                        "border"
-                    ],
-                    "dc": [
-                        "recJxp78T2qeIBX11"
-                    ]
+                    "%s" % column_name: "%s" % cell_value,
                 }
             }
         ]
     }
 
+    requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
+                   data=json.dumps(data))
 
 
-    response = requests.patch('https://api.airtable.com/v0/appwLoUM2FeZap2P4/Pitkyaranta_test', headers=headers,
-                              data=data)
-    table_json = response.json()
+def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
+    headers = {
+        'Authorization': '%s' % airtable_token,
+    }
 
-token, id, name = unpack_file('update_airtable.json')
-update_airtable(token, id, name, 'name', 'value')
+    response = requests.get('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers)
+    return response.json()
+
+
+list_of_changes = [
+    {
+        'code': 'B_BKb',
+        'column': 'name',
+        'change': 'fsjadhfas'
+    },
+    {
+        'code': 'B_BKp',
+        'column': 'name',
+        'change': '34534'
+    }
+
+]
+
+token, table_id, table_name = unpack_file('update_airtable.json')
+
+for element in list_of_changes:
+    table_data = get_data(token, table_id, table_name)
+    id = get_row_id(table_data, element['code'])
+    update_airtable(token, table_id, table_name, id, element['column'], element['change'])
