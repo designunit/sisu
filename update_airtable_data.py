@@ -66,6 +66,6 @@ list_of_changes = [
 token, table_id, table_name = unpack_file('update_airtable.json')
 
 for element in list_of_changes:
-    table_data = get_data(token, table_id, table_name)
+    table_data = get_data_from_airtable(token, table_id, table_name)
     id = get_row_id(table_data, element['code'])
     update_airtable(token, table_id, table_name, id, element['column'], element['change'])
