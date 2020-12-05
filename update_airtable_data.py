@@ -47,15 +47,13 @@ def update_airtable(airtable_token, airtable_id, airtable_name, patch):
         'Content-Type': 'application/json',
     }
 
-    # response = requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
-    #                           data=json.dumps(patch))
+    requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
+                   data=json.dumps(patch))
 
-    print(patch)
-
-
-token, table_id, table_name = unpack_file('update_airtable.json')
 
 if __name__ == '__main__':
+
+    token, table_id, table_name = unpack_file('update_airtable.json')
 
     data_list = [
         {
