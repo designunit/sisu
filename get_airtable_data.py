@@ -1,9 +1,15 @@
-import requests
+import json
+import urllib2
+from PIL import ImageColor
+
 
 def hex_to_rgb(hex_code):
-    hex = hex_code.lstrip('#')
-    hlen = len(hex)
-    return tuple(int(hex[i:i + hlen // 3], 16) for i in range(0, hlen, hlen // 3))
+    rgb = ImageColor.getcolor(hex_code, "RGB")
+    # hex = hex_code.lstrip('#')
+    # hlen = len(hex)
+    # print(hex[i:i + hlen / 3])
+    # return tuple(int(hex[i:i + hlen / 3], 16) for i in range(0, hlen, hlen / 3))
+    return rgb
 
 def render_view(record_value):
     view_list = []
@@ -40,40 +46,38 @@ def render_hatch_dict(record_value):
     return hatch_dict
 
 
+def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
 
-# TODO: Переформатировать цвета
+    headers = {
+        'Authorization': 'Bearer %s' % airtable_token,
+    }
 
-airtable_token = 'Bearer <strong_key>'
+    request = urllib2.Request('https://api.airtable.com/v0/%s/%s/' % (airtable_id, airtable_name), headers=headers)
 
-headers = {
-    'Authorization': '%s' % airtable_token,
-}
+    response = urllib2.urlopen(request).read()
+    table_json = json.loads(response)
 
-response = requests.get('https://api.airtable.com/v0/appwLoUM2FeZap2P4/Derbent/', headers=headers)
-
-table_json = response.json()
-
-layers_properties_dict = {
-    "version": "0",
-    "data": []
+    layers_properties_dict = {
+        "version": "0",
+        "data": []
     }
 
 
-for record in table_json['records']:
-    layers_properties_dict['data'].append({
-        "layer":
-            [record['fields']['code'],
-             {
-                 'color': hex_to_rgb(record['fields'].get('color')),
-                 'lineType': record['fields'].get('lineType', 'continuous'),
-                 'lineWeight': record['fields'].get('lineWeight', 1)
-             }],
-        "code": record['fields']['code'],
-        "properties": {
-            "patternRotation": 0,
-            "patternBasePoint": [0, 0, 0]
-        },
-        'view': render_view(record)
-    })
+    for record in table_json['records']:
+        layers_properties_dict['data'].append({
+            "layer":
+                [record['fields']['code'],
+                 {
+                     'color': hex_to_rgb(record['fields'].get('color')),
+                     'lineType': record['fields'].get('lineType', 'continuous'),
+                     'lineWeight': record['fields'].get('lineWeight', 1)
+                 }],
+            "code": record['fields']['code'],
+            "properties": {
+                "patternRotation": 0,
+                "patternBasePoint": [0, 0, 0]
+            },
+            'view': render_view(record)
+        })
 
-print(layers_properties_dict)
+    return layers_properties_dict
