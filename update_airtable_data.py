@@ -21,7 +21,7 @@ def get_row_id(table_dict, code):
 
 def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
     headers = {
-        'Authorization': '%s' % airtable_token,
+        'Authorization': 'Bearer %s' % airtable_token,
     }
     request = urllib2.Request('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers)
     response = urllib2.urlopen(request).read()
@@ -41,25 +41,25 @@ def create_patch(id, partial_dict):
     return dict
 
 
-def update_airtable(airtable_token, airtable_id, airtable_name, patch):
+def send_patch_request(airtable_token, airtable_id, airtable_name, patch):
     headers = {
-        'Authorization': airtable_token,
+        'Authorization': 'Bearer %s' % airtable_token,
         'Content-Type': 'application/json',
     }
 
     request = urllib2.Request('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
                               data=json.dumps(patch))
     request.get_method = lambda: 'PATCH'
-    urllib2.urlopen(request)
+    response = urllib2.urlopen(request)
 
+    return response.read()
 
-if __name__ == '__main__':
-    token, table_id, table_name = unpack_file('update_airtable.json')
+def update_airtable_data(token, table_id, table_name):
 
     data_list = [
         {
             'code': 'B_BKb',
-            'color': 'color changed',
+            'color': 'look at me',
             'pattern': 'test hash',
         },
         {
@@ -79,4 +79,4 @@ if __name__ == '__main__':
         row_id = get_row_id(table, partial['code'])
         data['records'].append(create_patch(row_id, partial))
 
-    update_airtable(token, table_id, table_name, data)
+    return send_patch_request(token, table_id, table_name, data)
