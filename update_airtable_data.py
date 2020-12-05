@@ -4,13 +4,13 @@ import urllib2
 
 # need for testing. in this stage info load from file
 def unpack_file(filepath):
-    file = json.load(open(filepath, 'r'))
+    settings_file = json.load(open(filepath, 'r'))
 
-    token = file.get('options').get('provider').get('apiKey')
-    id = file.get('options').get('provider').get('baseId')
-    table_name = file.get('options').get('provider').get('table')
+    token_from_file = settings_file.get('options').get('provider').get('apiKey')
+    id_from_file = settings_file.get('options').get('provider').get('baseId')
+    table_name_from_file = settings_file.get('options').get('provider').get('table')
 
-    return token, id, table_name
+    return token_from_file, id_from_file, table_name_from_file
 
 
 def get_row_id(table_dict, code):
@@ -50,7 +50,8 @@ def update_airtable(airtable_token, airtable_id, airtable_name, patch):
     request = urllib2.Request('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
                               data=json.dumps(patch))
     request.get_method = lambda: 'PATCH'
-    resp = urllib2.urlopen(request)
+    urllib2.urlopen(request)
+
 
 if __name__ == '__main__':
     token, table_id, table_name = unpack_file('update_airtable.json')
