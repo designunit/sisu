@@ -15,7 +15,7 @@ def unpack_file(filepath):
 
 def get_row_id(table_dict, code):
     for value in table_dict['records']:
-        if value['fields']['code'] == '%s' % code:
+        if value['fields']['code'] == code:
             return value['id']
 
 
@@ -28,37 +28,37 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
     return response.json()
 
 
-def render_patch_dict(data_dict, row_dict):
-    data_dict['records'].append(
-        {
-            "id": "%s" % row_dict['id'],
-            "fields": {
-                "code": "%s" % row_dict['code'],
-                "color": "%s" % row_dict['color'],
-                'pattern': row_dict['pattern'],
+def create_patch(id, partial_dict):
+    data_dict = {
+        'records': [
+            {
+                "id": id,
+                "fields": {
+                    "code": partial_dict['code'],
+                    "color": partial_dict['color'],
+                    'pattern': partial_dict['pattern'],
+                }
             }
-        }
-    )
+        ]
+    }
+
     return data_dict
 
 
 def update_airtable(airtable_token, airtable_id, airtable_name, patch):
     headers = {
-        'Authorization': '%s' % airtable_token,
+        'Authorization': airtable_token,
         'Content-Type': 'application/json',
     }
 
-    requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
-                   data=json.dumps(patch))
+    response = requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
+                              data=json.dumps(patch))
 
+    print(response.text)
 
 token, table_id, table_name = unpack_file('update_airtable.json')
 
 if __name__ == '__main__':
-    patch = {
-
-        'records': []
-    }
 
     data_list = [
         {
@@ -74,9 +74,9 @@ if __name__ == '__main__':
 
     ]
 
-    for element in data_list:
-        table_data = get_data_from_airtable(token, table_id, table_name)
-        element['id'] = get_row_id(table_data, element['code'])
-        data_dict = render_patch_dict(patch, element)
+    for partial in data_list:
+        table = get_data_from_airtable(token, table_id, table_name)
+        row_id = get_row_id(table, partial['code'])
+        data = create_patch(row_id, partial)
 
-    update_airtable(token, table_id, table_name, patch)
+    update_airtable(token, table_id, table_name, data)
