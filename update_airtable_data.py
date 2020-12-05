@@ -29,20 +29,16 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
 
 
 def create_patch(id, partial_dict):
-    data_dict = {
-        'records': [
-            {
-                "id": id,
-                "fields": {
-                    "code": partial_dict['code'],
-                    "color": partial_dict['color'],
-                    'pattern': partial_dict['pattern'],
-                }
-            }
-        ]
+    dict = {
+        "id": id,
+        "fields": {
+            "code": partial_dict['code'],
+            "color": partial_dict['color'],
+            'pattern': partial_dict['pattern'],
+        }
     }
 
-    return data_dict
+    return dict
 
 
 def update_airtable(airtable_token, airtable_id, airtable_name, patch):
@@ -51,10 +47,11 @@ def update_airtable(airtable_token, airtable_id, airtable_name, patch):
         'Content-Type': 'application/json',
     }
 
-    response = requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
-                              data=json.dumps(patch))
+    # response = requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
+    #                           data=json.dumps(patch))
 
-    print(response.text)
+    print(patch)
+
 
 token, table_id, table_name = unpack_file('update_airtable.json')
 
@@ -74,9 +71,13 @@ if __name__ == '__main__':
 
     ]
 
+    data = {
+        'records': []
+    }
+
     for partial in data_list:
         table = get_data_from_airtable(token, table_id, table_name)
         row_id = get_row_id(table, partial['code'])
-        data = create_patch(row_id, partial)
+        data['records'].append(create_patch(row_id, partial))
 
     update_airtable(token, table_id, table_name, data)
