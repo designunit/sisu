@@ -1,8 +1,8 @@
 import json
-import requests
+import urllib2
 
 
-# нужно для тестирования. на данном этапе инфа загружается из файла
+# need for testing. in this stage info load from file
 def unpack_file(filepath):
     file = json.load(open(filepath, 'r'))
 
@@ -23,9 +23,9 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
     headers = {
         'Authorization': '%s' % airtable_token,
     }
-
-    response = requests.get('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers)
-    return response.json()
+    request = urllib2.Request('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers)
+    response = urllib2.urlopen(request).read()
+    return json.loads(response)
 
 
 def create_patch(id, partial_dict):
@@ -47,24 +47,24 @@ def update_airtable(airtable_token, airtable_id, airtable_name, patch):
         'Content-Type': 'application/json',
     }
 
-    requests.patch('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
-                   data=json.dumps(patch))
-
+    request = urllib2.Request('https://api.airtable.com/v0/%s/%s' % (airtable_id, airtable_name), headers=headers,
+                              data=json.dumps(patch))
+    request.get_method = lambda: 'PATCH'
+    resp = urllib2.urlopen(request)
 
 if __name__ == '__main__':
-
     token, table_id, table_name = unpack_file('update_airtable.json')
 
     data_list = [
         {
             'code': 'B_BKb',
-            'color': 'цвет изменен',
-            'pattern': 'хач 43671',
+            'color': 'color changed',
+            'pattern': 'test hash',
         },
         {
             'code': 'B_BKp',
-            'color': 'цвет изменен еще раз',
-            'pattern': 'хач 3',
+            'color': 'that color is changed too',
+            'pattern': 'another hash',
         }
 
     ]
