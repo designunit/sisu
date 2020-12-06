@@ -59,12 +59,12 @@ def update_airtable_data(token, table_id, table_name):
     data_list = [
         {
             'code': 'B_BKb',
-            'color': 'look at me',
+            'color': '#78683d',
             'pattern': 'test hash',
         },
         {
             'code': 'B_BKp',
-            'color': 'that color is changed too',
+            'color': '#78683d',
             'pattern': 'another hash',
         }
 
