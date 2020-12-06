@@ -1,15 +1,11 @@
 import json
 import urllib2
-from PIL import ImageColor
 
 
 def hex_to_rgb(hex_code):
-    rgb = ImageColor.getcolor(hex_code, "RGB")
-    # hex = hex_code.lstrip('#')
-    # hlen = len(hex)
-    # print(hex[i:i + hlen / 3])
-    # return tuple(int(hex[i:i + hlen / 3], 16) for i in range(0, hlen, hlen / 3))
-    return rgb
+    hex = hex_code.lstrip('#')
+    hlen = len(hex)
+    return tuple(int(hex[i:i + hlen / 3], 16) for i in range(0, hlen, hlen / 3))
 
 def render_view(record_value):
     view_list = []
@@ -57,6 +53,7 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
     response = urllib2.urlopen(request).read()
     table_json = json.loads(response)
 
+
     layers_properties_dict = {
         "version": "0",
         "data": []
@@ -79,5 +76,8 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
             },
             'view': render_view(record)
         })
+
+    with open('sisufile.json', 'w') as sisy_file:
+        json.dump(layers_properties_dict, sisy_file, ensure_ascii=True)
 
     return layers_properties_dict

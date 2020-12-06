@@ -2,7 +2,8 @@ import csv
 import json
 import re
 import os
-from get_airtable_data import get_data
+from get_airtable_data import get_data_from_airtable
+from update_airtable_data import update_airtable_data
 
 def read_sisufile(filepath):
     if not os.path.isfile(filepath):
@@ -12,7 +13,7 @@ def read_sisufile(filepath):
         json_file = json.load(open(filepath, 'r'))
         if json_file['version'] == '0.1':
             if json_file.get('options').get('provider'):
-                return get_data_from_airtable(json_file)
+                return get_airtable_data(json_file)
         else:
             return read_sisufile_json(filepath)
     if filepath.endswith('.csv'):
@@ -20,11 +21,23 @@ def read_sisufile(filepath):
 
     return None
 
-def get_data_from_airtable(file):
+def get_airtable_data(file):
+
     table_token = file['options']['provider']['apiKey']
     table_id = file['options']['provider']['baseId']
     table_name = file['options']['provider']['table']
-    return get_data(table_token, table_id, table_name)
+    return get_data_from_airtable(table_token, table_id, table_name)
+
+def update_data(file):
+    json_file = json.load(open(file, 'r'))
+    if json_file['version'] == '0.1':
+        if json_file.get('options').get('provider'):
+
+            table_token = json_file['options']['provider']['apiKey']
+            table_id = json_file['options']['provider']['baseId']
+            table_name = json_file['options']['provider']['table']
+
+            return update_airtable_data(table_token, table_id, table_name)
 
 
 def read_sisufile_json(filepath):
@@ -86,6 +99,8 @@ def create_color(value):
 
 
 if __name__ == '__main__':
-    filepath = 'sisufile.csv'
-    filepath = 'DU4_OFFICE.csv'
+    # filepath = 'sisufile.csv'
+    # filepath = 'DU4_OFFICE.csv'
+    filepath = 'update_airtable.json'
     print(json.dumps(read_sisufile(filepath), indent=4))
+    print(json.dumps(update_data(filepath), indent=4))
