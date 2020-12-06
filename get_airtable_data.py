@@ -77,7 +77,11 @@ def get_data_from_airtable(airtable_token, airtable_id, airtable_name):
             'view': render_view(record)
         })
 
+    with open('sisufile.json', 'r') as sisy_file:
+        sisy_file_obj = json.load(sisy_file)
+        sisy_file_obj['data'] = layers_properties_dict['data']
+
     with open('sisufile.json', 'w') as sisy_file:
-        json.dump(layers_properties_dict, sisy_file, ensure_ascii=True)
+        json.dump(sisy_file_obj, sisy_file, ensure_ascii=False, indent=2)
 
     return layers_properties_dict
