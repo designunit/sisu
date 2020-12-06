@@ -145,7 +145,7 @@ Cинхронизирует файл в соответствии с настро
                 "pattern": "pattern",
                 "patternScale": "patternScale",
                 "patternColor": "patternColor",
-                "patternLineWeight": "pattern",
+                "patternLineWeight": "pattern"
             }
         }
     }
