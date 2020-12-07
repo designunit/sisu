@@ -18,13 +18,10 @@ def get_sisufile_path():
 
 
 def get_sisufile():
-    path = get_sisufile_path()
-    if not path:
-        return None
-    if not os.path.exists(path):
-        return None
-
-
+    f = rs.GetDocumentUserText(SISUFILE_KEY)
+    if not f:
+        f = str(rs.DocumentPath() + 'sisufile.json')
+    return read_sisufile(f)
 
 def update_sisufile():
     path = get_sisufile_path()
@@ -56,5 +53,3 @@ def find_layer_objects(match_fn, layer_name):
 
     return [x for x in xs if match_fn(x)]
 
-if __name__ == '__main__':
-    update_sisufile()
