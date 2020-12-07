@@ -1,0 +1,11 @@
+{
+  "version": "0.1",
+  "options": {
+    "provider": {
+      "type": "airtable",
+      "baseId": "appwLoUM2FeZap2P4",
+      "apiKey": "keyFXLH7A03BynFOx",
+      "table": "Derbent"
+    }
+  }
+}
