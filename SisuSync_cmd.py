@@ -259,3 +259,7 @@ def RunCommand( is_interactive ):
     sc.doc.Views.Redraw()
 
     return Rhino.Commands.Result.Success
+
+
+if __name__ == '__main__':
+    RunCommand(None)
