@@ -16,7 +16,8 @@ def RunCommand( is_interactive ):
 
     status = link_sisufile(file)
     if not status:
-        rs.MessageBox('Something went wrong with this sisufile. Try another file')
+        err_message = 'Something went wrong with this sisufile. Try another file'
+        rs.MessageBox(err_message, title='Error', buttons=16)
         return None, Rhino.Commands.Result.Failure
 
     return file, Rhino.Commands.Result.Success
