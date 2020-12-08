@@ -2,18 +2,41 @@ import csv
 import json
 import re
 import os
+import airtable
+
 
 def read_sisufile(filepath):
     if not os.path.isfile(filepath):
         return None
-
     if filepath.endswith('.json'):
-        json_file = json.load(open(filepath, 'r'))
-        return json_file
+        return read_sisufile_json(filepath)
     if filepath.endswith('.csv'):
         return read_sisufile_csv(filepath)
-
     return None
+
+
+def sisufile_pull(filepath):
+    sisufile = read_sisufile(filepath)
+    if not sisufile:
+        return False
+    
+    provider = get_provider(sisufile)
+    if not provider:
+        return False
+    
+    try:
+        data = provider.get_data()
+
+        with open(filepath, 'r') as f:
+            config = json.load(f)
+            config['data'] = data
+
+        with open(filepath, 'w') as f:
+            json.dump(config, f, ensure_ascii=False, indent=4)
+
+        return True
+    except Exception:
+        return False
 
 
 def read_sisufile_json(filepath):
@@ -74,9 +97,16 @@ def create_color(value):
     return [int(channel) for channel in color_list]
 
 
-if __name__ == '__main__':
-    # filepath = 'sisufile.csv'
-    # filepath = 'DU4_OFFICE.csv'
-    filepath = 'sisufile.json'
-    print(json.dumps(read_sisufile(filepath), indent=4))
-    # print(json.dumps(update_data(filepath), indent=4))
+def get_provider(config):
+    if config['version'] != '0.1':
+        return None
+
+    if not config.get('options', {}).get('provider'):
+        return None
+
+    provider_type = config.get('options', {}).get('provider', {}).get('type')
+    if provider_type == 'airtable':
+        options = config.get('options', {}).get('provider', {})
+        return airtable.AirtableProvider(options)
+
+    return None

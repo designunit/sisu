@@ -1,26 +1,22 @@
-import json
 import Rhino
-import rhinoscriptsyntax as rs
-from rhinolib import get_sisufile
-from sisulib import get_related_layers
-from sync import read_sisufile
+from rhinolib import get_sisufile_path
+from sync import sisufile_pull
 
 __commandname__ = 'SisuPull'
 
 
 def RunCommand( is_interactive ):
+    path = get_sisufile_path()
 
-    config = get_sisufile()
-
-    if not config:
-        print('Sisufile not configured')
+    if not path:
+        print('Sisufile not linked')
         return Rhino.Commands.Result.Failure
 
     try:
-        json.dumps(read_sisufile(config), indent=4)
-    except Exception:
+        sisufile_pull(path)
+    except Exception as e:
+        print('Something went wrong')
         return Rhino.Commands.Result.Failure
-
 
     return Rhino.Commands.Result.Success
 

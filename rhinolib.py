@@ -2,7 +2,6 @@ import rhinoscriptsyntax as rs
 import scriptcontext as sc
 from sync import read_sisufile
 import os.path
-from airtable import get_sisufile_info, get_data_from_airtable
 
 SISUFILE_KEY = 'sisuSyncFile'
 
@@ -18,25 +17,14 @@ def get_sisufile_path():
 
 
 def get_sisufile():
-    f = rs.GetDocumentUserText(SISUFILE_KEY)
+    f = get_sisufile_path()
     if not f:
-        f = str(rs.DocumentPath() + 'sisufile.json')
+        return None
     return read_sisufile(f)
-
-def update_sisufile():
-    path = get_sisufile_path()
-    sisufile = read_sisufile(path)
-
-    if sisufile:
-        keys_airtable_dict = get_sisufile_info(sisufile) # need for None check
-        if keys_airtable_dict:
-            return get_data_from_airtable(keys_airtable_dict)
-
-    return None
 
 
 def link_sisufile(filepath):
-    config = sync.read_sisufile(filepath)
+    config = read_sisufile(filepath)
     if not config:
         return False
 
