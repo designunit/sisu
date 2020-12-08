@@ -8,7 +8,7 @@ SISUFILE_KEY = 'sisuSyncFile'
 def get_sisufile():
     f = rs.GetDocumentUserText(SISUFILE_KEY)
     if not f:
-        return None
+        f = str(rs.DocumentPath() + 'sisufile.json')
     return sync.read_sisufile(f)
 
 
