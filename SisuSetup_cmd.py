@@ -10,7 +10,7 @@ __commandname__ = 'SisuSetup'
 
 
 def RunCommand( is_interactive ):
-    file = rs.GetString('Sisufile path')
+    file = rs.OpenFileName(title='Select Sisufile', extension='.json')
     if not file:
         return None, Rhino.Commands.Result.Cancel
 
