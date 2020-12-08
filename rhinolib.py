@@ -1,19 +1,30 @@
 import rhinoscriptsyntax as rs
 import scriptcontext as sc
-import sync
+from sync import read_sisufile
+import os.path
 
 SISUFILE_KEY = 'sisuSyncFile'
 
 
-def get_sisufile():
+def get_sisufile_path():
     f = rs.GetDocumentUserText(SISUFILE_KEY)
+    if f:
+        return f
+    doc_path = rs.DocumentPath()
+    if not doc_path:
+        return None
+    return os.path.join(doc_path, 'sisufile.json')
+
+
+def get_sisufile():
+    f = get_sisufile_path()
     if not f:
-        f = str(rs.DocumentPath() + 'sisufile.json')
-    return sync.read_sisufile(f)
+        return None
+    return read_sisufile(f)
 
 
 def link_sisufile(filepath):
-    config = sync.read_sisufile(filepath)
+    config = read_sisufile(filepath)
     if not config:
         return False
 
@@ -34,3 +45,4 @@ def find_layer_objects(match_fn, layer_name):
     xs = sc.doc.Objects.FindByLayer(layer_name)
 
     return [x for x in xs if match_fn(x)]
+
