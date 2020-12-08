@@ -12,8 +12,13 @@ def get_sisufile():
     return sync.read_sisufile(f)
 
 
-def set_sisufile(f):
-    rs.SetDocumentUserText(SISUFILE_KEY, f)
+def link_sisufile(filepath):
+    config = sync.read_sisufile(filepath)
+    if not config:
+        return False
+
+    rs.SetDocumentUserText(SISUFILE_KEY, filepath)
+    return True
 
 
 def get_user_text(obj, key, default_value=None, fn=None):

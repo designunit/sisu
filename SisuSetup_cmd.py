@@ -4,17 +4,20 @@ import System
 import Rhino
 import json
 import math
-from rhinolib import set_sisufile
+from rhinolib import link_sisufile
 
 __commandname__ = 'SisuSetup'
 
 
 def RunCommand( is_interactive ):
-    file = rs.OpenFileName(title='Select Sisufile', extension='.json')
+    file = rs.OpenFileName(title='Select Sisufile')
     if not file:
         return None, Rhino.Commands.Result.Cancel
 
-    set_sisufile(file)
+    status = link_sisufile(file)
+    if not status:
+        rs.MessageBox('Something went wrong with this sisufile. Try another file')
+        return None, Rhino.Commands.Result.Failure
 
     return file, Rhino.Commands.Result.Success
 
