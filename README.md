@@ -32,6 +32,126 @@ Cинхронизирует файл в соответствии с настро
 `HatchRotation` - привязывает к контуру свойства создаваемой в нём штриховки (поворот, точку привязки)
 `ExportLayers` - сохраняет свойства слоёв файла в формате csv
 
+## Sisufile file format specification
+
+### Sisufile version 0
+
+```json
+{
+    "version": "0",
+    "data": [
+        {
+            "layer": [
+                "Default",
+                {
+                    "color": [255, 0, 0],
+                    "lineType": "continuous",
+                    "lineWeight": 1
+                }
+            ],
+            "code": "X",
+            "properties": {
+                "patternRotation": 0,
+                "patternBasePoint": [0, 0, 0]
+            },
+            "view": [
+                {
+                    "layerSuffix": "_SOLID",
+                    "render": [
+                        "hatch",
+                        {
+                            "pattern": "Solid",
+                            "scale": 1,
+                            "color": [10, 190, 10],
+                            "lineWeight": 0.13
+                        }
+                    ]
+                },
+                {
+                    "layerSuffix": "_HATCH",
+                    "render": [
+                        "hatch",
+                        {
+                            "pattern": "Grid",
+                            "scale": 1,
+                            "color": [0, 255, 0],
+                            "lineWeight": 0.1
+                        }
+                    ]
+                }
+            ],
+            "options": {}
+        }
+    ]
+}
+```
+
+### Sisufile version 0.1
+
+```json5
+{
+    "version": "0.1",
+
+    // data is optional. skip if options.provider is exist and take data from data provider
+    "data": [
+        {
+            "layer": ["Default", {
+                "color": [255, 0, 0],
+                "lineType": "continuous",
+                "lineWeight": 1
+            }],
+            "code": "X",
+            "properties": {
+                "patternRotation": 0,
+                "patternBasePoint": [0, 0, 0]
+            },
+            "view": [
+                {
+                    "layerSuffix": "_SOLID",
+                    "render": ["hatch", {
+                        "pattern": "Solid",
+                        "scale": 1,
+                        "color": [10, 190, 10],
+                        "lineWeight": 0.13
+                    }]
+                },
+                {
+                    "layerSuffix": "_HATCH",
+                    "render": ["hatch", {
+                        "pattern": "Grid",
+                        "scale": 1,
+                        "color": [0, 255, 0],
+                        "lineWeight": 0.1
+                    }]
+                }
+            ],
+            "options": {}
+        }
+    ],
+
+    "options": {
+        "provider": {
+            "type": "airtable",
+            "baseId": "<airtable_base_id>",
+            "apiKey": "<airtable_api_key>",
+            "table": "<airtable_table>",
+            "columns": {
+                "layer": "code",
+                "code": "code",
+                "color": "color",
+                "lineWeight": "lineWeight",
+                "lineType": "lineType",
+                "solidColor": "solidColor",
+                "pattern": "pattern",
+                "patternScale": "patternScale",
+                "patternColor": "patternColor",
+                "patternLineWeight": "pattern"
+            }
+        }
+    }
+}
+```
+
 ## Default colors
 
 | Color       | Red | Green | Blue |
