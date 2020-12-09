@@ -15,6 +15,8 @@ def RunCommand( is_interactive ):
     layers = get_related_layers(config, derived_only=True)
     for layer in layers:
         rs.LayerVisible(layer, visible=False)
+        parent = rs.ParentLayer(layer)
+        rs.ExpandLayer(parent, False) # collapse parend layer
 
     return Rhino.Commands.Result.Success
 

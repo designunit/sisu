@@ -31,11 +31,11 @@ Unlock all derived sisu layers.
 
 ### `SisuHide`
 
-Скрывает все производные слои
+Hide all derived sisu layers. Collapse layer tree. 
 
 ### `SisuShow`
 
-Включает все производные слои
+Show all derived sisu layers.
 
 `HatchRotation` - привязывает к контуру свойства создаваемой в нём штриховки (поворот, точку привязки)
 `ExportLayers` - сохраняет свойства слоёв файла в формате csv
