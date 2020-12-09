@@ -16,14 +16,31 @@ system_hatch_pattern_names = [
     'Hatch3',
     'Plus',
     'Solid',
-    'Squares'
+    'Squares',
 ]
+
+KEY_ORIGIN = 'originId'
+KEY_ROT = 'patternRotation'
+KEY_BASEPOINT = 'patternBasePoint'
 
 
 class HatchProxy:
     def __init__(self, hatch):
         self.hatch = hatch
         self.hash = None
+        self.origin = None
+
+    def set_origin(self, obj):
+        self.origin = obj
+
+    def apply_options(self, defaults):
+        rotation = get_user_text(self.origin, KEY_ROT, None, float)
+        if rotation:
+            self.hatch.PatternRotation = math.radians(rotation)
+
+        basepoint = get_user_text(self.origin, KEY_BASEPOINT, None, rs.coerce3dpoint)
+        if basepoint:
+            self.hatch.BasePoint = basepoint
 
     def get_hash(self):
         if not self.hash:
@@ -93,37 +110,72 @@ def is_match_for_hatch_source(x):
     return True
 
 
-def get_custom_objects(objects, options):
-    default_rotation = options['patternRotation']
-    default_base_point = point3d(options['patternBasePoint'])
-    result = []
+def is_hatch_pattern(x):
+    is_hatch_object = x.ObjectType == Rhino.DocObjects.ObjectType.Hatch
+    is_solid = rs.HatchPattern(x) == 'Solid'
+
+    return is_hatch_object and not is_solid
+
+
+def normalize_objects(objects):
+    source = {
+        'by_layer': 0,
+        'by_object': 1,
+        'by_parent': 3,
+    }
+
+    # Fix source layer objects
     for x in objects:
-        attrs = {}
-        rotation = get_user_text(x, 'patternRotation', None, float)
-        if rotation or rotation == default_rotation:
-            attrs['patternRotation'] = math.radians(rotation)
-        base_point = get_user_text(x, 'patternBasePoint', None, json.loads)
-        if base_point and base_point != default_base_point:
-            attrs['patternBasePoint'] = point3d(base_point)
-        if attrs:
-            result.append((x, attrs))
+        rs.ObjectLinetypeSource(x.Id, source['by_layer'])
+        rs.ObjectColorSource(x.Id, source['by_layer'])
+        rs.ObjectPrintWidthSource(x.Id, source['by_layer'])
+
+
+def get_modified_hatches(layer_name, defaults):
+    rotation = defaults.get(KEY_ROT)
+    base_point = defaults.get(KEY_BASEPOINT)
+    base_point = point3d(base_point)
+    objects = find_layer_objects(is_hatch_pattern, layer_name)
+    result = []
+    for obj in objects:
+        hatch = obj.Geometry
+        r = hatch.PatternRotation
+        bp = hatch.BasePoint
+
+        rotation_modified = r != rotation
+        basepoint_modified = bp != base_point
+
+        if rotation_modified or basepoint_modified:
+            result.append(obj)
     return result
 
 
-def bake_layer(from_layer, to_layer, options):
-    source_by_layer = 0
-#    0 = By Layer
-#    1 = By Object
-#    3 = By Parent
+def save_hatch_options(obj, defaults):
+    curve_id = rs.GetUserText(obj, KEY_ORIGIN)
+    curve_id = rs.coerceguid(curve_id)
+    curve_obj = sc.doc.Objects.FindId(curve_id)
+    hatch = obj.Geometry
 
-    default_rotation = options['patternRotation']
+    rotation = math.degrees(hatch.PatternRotation)
+    default_rotation = defaults.get(KEY_ROT)
+    if rotation != default_rotation:
+        rs.SetUserText(curve_id, KEY_ROT, rotation)
+
+    basepoint = hatch.BasePoint
+    default_basepoint = rs.coerce3dpoint(defaults.get(KEY_BASEPOINT))
+    if basepoint != default_basepoint:
+       rs.SetUserText(curve_id, KEY_BASEPOINT, basepoint.ToString())
+
+
+def bake_layer(from_layer, to_layer, options):
+    default_rotation = options[KEY_ROT]
     scale = options['scale']
     draw_order = options['drawOrder']
     pattern = options['pattern']
     target_layer_index = sc.doc.Layers.FindByFullPath(to_layer, True)
     pattern_index = sc.doc.HatchPatterns.Find(pattern, True)
     if pattern_index < 0:
-        print('Hatch pattern does not exist')
+        print('Hatch pattern %s does not exist' % pattern)
         return
 
     source_objects = find_layer_objects(is_match_for_hatch_source, from_layer)
@@ -131,34 +183,35 @@ def bake_layer(from_layer, to_layer, options):
         print('Layer %s has no objects to bake' % from_layer)
         return
 
-    # Fix source layer objects
-    for x in source_objects:
-        rs.ObjectLinetypeSource(x.Id, source_by_layer)
-        rs.ObjectColorSource(x.Id, source_by_layer)
-        rs.ObjectPrintWidthSource(x.Id, source_by_layer)
+    normalize_objects(source_objects)
+    custom_hatch_objects = get_modified_hatches(to_layer, options)
+    for h in custom_hatch_objects:
+        save_hatch_options(h, options)
+    rs.PurgeLayer(to_layer)
 
     curves = [x.Geometry for x in source_objects]
-    hatches = Rhino.Geometry.Hatch.Create(curves, pattern_index, default_rotation, scale)
-
-    custom_objects = get_custom_objects(source_objects, options)
+    tolerance = sc.doc.ModelAbsoluteTolerance
+    hatches = Rhino.Geometry.Hatch.Create(curves, pattern_index, default_rotation, scale, tolerance)
     proxies = [HatchProxy(x) for x in hatches]
-    for x, attrs in custom_objects:
-        rotation = attrs.get('patternRotation')
-        base_point = attrs.get('patternBasePoint')
-        target = find_by_bounding_box(proxies, x.Geometry.GetBoundingBox(True))
 
-        if not target:
+    # bind main curve to created hatch
+    for obj in source_objects:
+        hp = find_by_bounding_box(proxies, obj.Geometry.GetBoundingBox(True))
+        if not hp:
             continue
-
-        if rotation:
-            target.hatch.PatternRotation = rotation
-        if base_point:
-            target.hatch.BasePoint = base_point
+        hp.set_origin(obj)
 
     # Add created hatches to rhino doc + set attributes
-    for hatch in hatches:
+    for hp in proxies:
+        hp.apply_options(defaults=options)
+        
+        hatch = hp.hatch
         hatch_guid = sc.doc.Objects.AddHatch(hatch)
         hatch_obj = sc.doc.Objects.Find(hatch_guid)
+
+        # save origin curve in hatch user text
+        rs.SetUserText(hatch_obj, KEY_ORIGIN, hp.origin.Id)
+
         hatch_obj.Attributes.LayerIndex = target_layer_index
         hatch_obj.Attributes.DisplayOrder = draw_order
         hatch_obj.CommitChanges()
@@ -167,10 +220,6 @@ def bake_layer(from_layer, to_layer, options):
 def sync_code(code_def, sync_options):
     layer_name, layer_options = code_def['layer']
     setup_layer(layer_name, layer_options)
-
-    current_view_layers = rs.LayerChildren(layer_name)
-    for x in current_view_layers:
-        rs.PurgeLayer(x)
 
     draw_order = 1
     for view in code_def['view']:
@@ -231,7 +280,7 @@ def RunCommand( is_interactive ):
     mode_full = 'Full'
     mode_existing = 'Existing'
     mode_current = 'Current'
-    modes = (mode_full, mode_existing, mode_current)
+    modes = (mode_existing, mode_current, mode_full)
 
     user_options, status = get_sync_options(modes)
     if status != Rhino.Commands.Result.Success:
@@ -245,6 +294,7 @@ def RunCommand( is_interactive ):
         layer_scope = rs.LayerNames()
     
     options = {}
+    rs.EnableRedraw(False)
     for code in codes:
         layer_name, layer_options = code['layer']
         layer_exists = rs.IsLayer(layer_name)
@@ -255,7 +305,9 @@ def RunCommand( is_interactive ):
         try:
             sync_code(code, options)
         except Exception as e:
-            print('Exception', e)
+            print('failed to sync %s: %s' % (code['code'], e))
+
+    rs.EnableRedraw(True)
     sc.doc.Views.Redraw()
 
     return Rhino.Commands.Result.Success

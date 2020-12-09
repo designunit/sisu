@@ -43,10 +43,10 @@ def create_hatch_view(record):
     hatch_dict = {
         "layerSuffix": "_HATCH",
         "render": ["hatch", {
-            "pattern": record.get('pattern'),
-            "scale": record.get('patternScale'),
+            "pattern": record.get('pattern', 'Grid'),
+            "scale": float(record.get('patternScale', 1)),
             "color": hex_to_rgb(record.get('patternColor', '#000000')),
-            "lineWeight": record.get('patternLineWeight'),
+            "lineWeight": float(record.get('patternLineWeight', 0.13)),
         }]
     }
 
