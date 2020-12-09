@@ -53,13 +53,17 @@ def create_hatch_view(record):
     return hatch_dict
 
 
-def get_data_from_airtable(token, base_id, table_name):
+def airtable_get(token, base_id, table_name):
     headers = {
         'Authorization': 'Bearer %s' % token,
     }
     request = urllib2.Request('https://api.airtable.com/v0/%s/%s/' % (base_id, table_name), headers=headers)
     response = urllib2.urlopen(request).read()
-    table = json.loads(response)
+    return json.loads(response)
+
+
+def get_data_from_airtable(token, base_id, table_name):
+    table = airtable_get(token, base_id, table_name)
 
     collected_codes = set()
     layers = []
