@@ -42,7 +42,13 @@ def get_user_text(obj, key, default_value=None, fn=None):
 
 
 def find_layer_objects(match_fn, layer_name):
-    xs = sc.doc.Objects.FindByLayer(layer_name)
+    layer_index = sc.doc.Layers.FindByFullPath(layer_name, True)
+    layer = sc.doc.Layers.FindIndex(layer_index)
+    # layer_id = rs.LayerId(layer_name)
+    # xs = sc.doc.Objects.FindByLayer(layer_name)
+    xs = sc.doc.Objects.FindByLayer(layer)
+    if not xs:
+        return []
 
     return [x for x in xs if match_fn(x)]
 
