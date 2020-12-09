@@ -39,9 +39,34 @@ def sisufile_pull(filepath):
         return False
 
 
-def read_sisufile_json(filepath):
-    return json.load(open(filepath, 'r'))
+def sisufile_update_data(filepath, new_data):
+    import tempfile
+    import os
 
+    with open(filepath, 'r') as f:
+        config = json.load(f)
+        config['data'] = new_data
+
+    tmp, tmp_path = tempfile.mkstemp()    
+    with os.fdopen(tmp, 'w') as f:
+        json.dump(config, f, ensure_ascii=False, indent=4)
+
+    os.rename(tmp_path, filepath)
+
+    # with open(filepath, 'r+') as f:
+    #     config = json.load(f)
+    #     config['data'] = new_data
+
+    #     f.seek(0)
+    #     json.dump(config, f, ensure_ascii=False, indent=4)
+    #     f.truncate()
+
+
+
+def read_sisufile_json(filepath):
+    with open(filepath, 'r') as f:
+        data = json.load(f)
+    return data
 
 def read_sisufile_csv(filepath):
     def row(x):
