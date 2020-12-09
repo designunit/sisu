@@ -21,6 +21,14 @@ Cинхронизирует файл в соответствии с настро
 
 Удаляет все производные слои
 
+### `SisuLock`
+
+Lock all derived sisu layers. Collapse layer tree. 
+
+### `SisuUnlock`
+
+Unlock all derived sisu layers.
+
 ### `SisuHide`
 
 Скрывает все производные слои
