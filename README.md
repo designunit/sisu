@@ -13,6 +13,14 @@
 
 Привязывает `sisufile` к текущему файлу
 
+### `SisuPull`
+
+Fetch definition from specified **Data Store** (*Airtable* for example) and save to linked `sisufile`
+
+### `SisuPush`
+
+Deliver changes from *3dm* file to **Data Store**
+
 ### `SisuSync`
 
 Cинхронизирует файл в соответствии с настройкой в привязаном `sisufile`
