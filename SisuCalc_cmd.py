@@ -4,10 +4,23 @@ import rhinoscriptsyntax as rs
 import scriptcontext as sc
 import json
 import csv
+import os
 import Rhino
 from collections import Counter
+from rhinolib import get_sisufile
+from sisulib import get_related_layers
+import datetime
+
+
+__commandname__ = 'SisuCalc'
 
 sisu_layer = 'SISU'
+
+UNIT_PIECE = 'piece'
+UNIT_LENGTH = 'length'
+UNIT_M = 'm'
+UNIT_M2 = 'm2'
+
 
 def save_sisu_calc_report(report, filename):
     fields = ['code', 'name', 'value', 'units']
@@ -143,102 +156,111 @@ def calc_linear_size(obj):
 #        tolerance = 2.1 * scriptcontext.doc.ModelAbsoluteTolerance
 #    newcurves = Rhino.Geometry.Curve.JoinCurves(curves, tolerance)
 
+def RunCommand( is_interactive ):
+    config = get_sisufile()
+    if not config:
+        print('Sisufile not configured')
+        return Rhino.Commands.Result.Failure
 
-#layers = [x
-#    for x in rs.LayerNames()
-#    if rs.IsLayerChildOf(sisu_layer, x)
-#]
+    items = config['data']
+    out = []
+    failed_objects = []
+    result = {}
+    for item in items:
+        if not 'code' in item:
+            print('failed to process item: code not found')
+
+        c = item.get('code')
+        code = c.get('id')
+        units = c.get('units')
+        if not units:
+            print('failed to process dc item: units not specified')
+
+        layer_name = code
+
+        if units == UNIT_PIECE:
+            blocks = get_blocks(code)
+            block_names = [b.InstanceDefinition.Name for b in blocks]
+            c = Counter(block_names)
+            for n, v in c.items():
+                result[n] = (layer_name, v, units)
+            print(code, units, len(blocks), c.items())
+
+        if units == UNIT_M2:
+            objs = filter_objects(code, any_filter([
+                geometry_filter('PolylineCurve'),
+                geometry_filter('PolyCurve'),
+                geometry_filter('NurbsCurve'),
+            ]))
+            print(code, 'curves', len(objs))
+            hatches = create_hatches([o.Geometry for o in objs])
+            total_area = 0
+            geometry = [o.Geometry for o in objs]
+            geometry = hatches
+            for g in geometry:
+                try:
+                    amp = Rhino.Geometry.AreaMassProperties.Compute(g)
+                    a = amp.Area
+                    total_area += a
+                except Exception as e:
+                    print('failed to calculate area of', g, e)
+    #                failed_objects.append(o)
+            print(code, units, 'area:', total_area)
+            result[code] = (layer_name, total_area, units)
+
+        if units == 'm':
+    #        objs = filter_objects(code, type_filter('CurveObject'))
+            objs = filter_objects(code, any_filter([
+                geometry_filter('PolylineCurve'),
+                geometry_filter('PolyCurve'),
+                geometry_filter('NurbsCurve'),
+            ]))
+            total_length = 0
+            if is_simple_linear(c):
+                print('use simple linear calc', code)
+                total_length = sum([calc_simple_linear_size(o)
+                    for o in objs
+                ])
+            elif is_linear(item):
+                print('use linear calc for objects with area', code)
+                for o in objs:
+                    if not o.Geometry.IsClosed:
+                        print('failed to calculate linear dimension: geometry is not closed')
+                        failed_objects.append(o)
+                        continue
+                    l = calc_linear_size(o)
+                    total_length += l
+            else:
+                print('cannot calc length: dc is not configured properly', code)
+            print(code, units, 'length:', total_length)
+            result[code] = (layer_name, total_length, units)
+    #    l = rs.LayerId(layer_name)
+    #    print(code, l)
+
+    if len(failed_objects) > 0:
+        print('failed to calc. need some work')
+        rs.SelectObjects([x.Id for x in failed_objects])
+    #    for obj in failed_objects:
+    #        rs.ObjectName(obj.Id, 'failed')
+    else:
+        print('saving to file...')
+
+        now = datetime.date.today()
+        prefix = now.strftime('%Y%m%d')
+        doc = rs.DocumentPath()
+        filename = '%s-SISU_CALC.csv' % prefix
+        filepath = os.path.join(doc, filename)
+        save_sisu_calc_report(result, filepath)
+    #    try:
+    #        conf = get_layer_config(code)
+    #        conf.update(item)
+    #        out.append(conf)
+    #    except Exception as e:
+    #        print('DC failed. Fill defaults', code, e)
+    ##        conf.update(default_config)
+
+    return Rhino.Commands.Result.Success
 
 
-#dc = get_dc('C:/Users/tmshv/Desktop/Projects/dc-data/DC-DERBENT-OUT.csv')
-#dc = get_dc('C:/Users/tmshv/Desktop/Projects/UNIT/Derbent/DERBENT-DC.csv')
-dc = get_dc('C:/Users/tmshv/Desktop/Projects/UNIT/Derbent/20201018-derbent_dc.csv')
-out = []
-failed_objects = []
-result = {}
-for item in dc:
-    name = item.get('name', '')
-    code = item.get('code')
-    if not code:
-        print('failed to process item: code not found')
-    units = item.get('units')
-    if not units:
-        print('failed to process dc item: units not specified')
-
-#     layer_name = 'SISU::'+code
-    layer_name = code
-
-    if units == 'pcs':
-        blocks = get_blocks(code)
-        block_names = [b.InstanceDefinition.Name for b in blocks]
-        c = Counter(block_names)
-        for n, v in c.items():
-            result[n] = (name, v, units)
-        print(code, units, len(blocks), c.items())
-
-    if units == 'm2':
-        objs = filter_objects(code, any_filter([
-            geometry_filter('PolylineCurve'),
-            geometry_filter('PolyCurve'),
-            geometry_filter('NurbsCurve'),
-        ]))
-        print(code, 'curves', len(objs))
-        hatches = create_hatches([o.Geometry for o in objs])
-        total_area = 0
-        geometry = [o.Geometry for o in objs]
-        geometry = hatches
-        for g in geometry:
-            try:
-                amp = Rhino.Geometry.AreaMassProperties.Compute(g)
-                a = amp.Area
-                total_area += a
-            except Exception as e:
-                print('failed to calculate area of', g, e)
-#                failed_objects.append(o)
-        print(code, units, 'area:', total_area)
-        result[code] = (name, total_area, units)
-
-    if units == 'm':
-#        objs = filter_objects(code, type_filter('CurveObject'))
-        objs = filter_objects(code, any_filter([
-            geometry_filter('PolylineCurve'),
-            geometry_filter('PolyCurve'),
-            geometry_filter('NurbsCurve'),
-        ]))
-        total_length = 0
-        if is_simple_linear(item):
-            print('use simple linear calc', code)
-            total_length = sum([calc_simple_linear_size(o)
-                for o in objs
-            ])
-        elif is_linear(item):
-            print('use linear calc for objects with area', code)
-            for o in objs:
-                if not o.Geometry.IsClosed:
-                    print('failed to calculate linear dimension: geometry is not closed')
-                    failed_objects.append(o)
-                    continue
-                l = calc_linear_size(o)
-                total_length += l
-        else:
-            print('cannot calc length: dc is not configured properly', code)
-        print(code, units, 'length:', total_length)
-        result[code] = (name, total_length, units)
-#    l = rs.LayerId(layer_name)
-#    print(code, l)
-
-if len(failed_objects) > 0:
-    print('failed to calc. need some work')
-    rs.SelectObjects([x.Id for x in failed_objects])
-#    for obj in failed_objects:
-#        rs.ObjectName(obj.Id, 'failed')
-else:
-    print('saving to file...')
-    save_sisu_calc_report(result, 'C:/Users/tmshv/Desktop/Projects/UNIT/Derbent/20201018-DERBENT_CALC.csv')
-#    try:
-#        conf = get_layer_config(code)
-#        conf.update(item)
-#        out.append(conf)
-#    except Exception as e:
-#        print('DC failed. Fill defaults', code, e)
-##        conf.update(default_config)
+if __name__ == '__main__':
+    RunCommand(None)
