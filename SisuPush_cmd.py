@@ -87,60 +87,66 @@ def get_hatches(layer):
 
 
 def get_color(c):
-    r = '#%02.x%02.x%02.x' % (c.R, c.G, c.B)
+    if type(c) == list:
+        rgb = tuple(c)
+    else:
+        rgb = (c.R, c.G, c.B)
+    r = '#%02.x%02.x%02.x' % rgb
     return r
     # return [c.R, c.G, c.B]
 
 
-def get_layer_config(layer_name):
-    print_color = rs.LayerPrintColor(layer_name)
-    print_width = rs.LayerPrintWidth(layer_name)
-    line_type = rs.LayerLinetype(layer_name)
-
-    conf = {
-        'code': layer_name,
-        'color': get_color(print_color),
-        # 'lineWeight': '%.2f' % print_width,
-        'lineWeight': print_width,
-        'lineType': line_type.lower(),
-    }
-    hs = get_hatches(layer_name)
-    if len(hs) > 0:
-        h = hs[0]
-        pattern = rs.HatchPattern(h.Id)
-        is_solid = pattern == 'SOLID'
-        if is_solid:
-            conf['solidColor'] = get_color(print_color)
-        else:
-            conf['pattern'] = pattern
-            conf['patternScale'] = 1
-            conf['patternColor'] = get_color(print_color)
-            # conf['patternLineWeight'] = '%.2f' % print_width
-            conf['patternLineWeight'] = print_width
-    return conf
-
-
-def get_solid_view_config(layer_name):
-    print_color = rs.LayerPrintColor(layer_name)
-    conf = {
-        'solidColor': get_color(print_color),
-    }
-    return conf
-
-
-def get_pattern_view_config(layer_name):
-    print_color = rs.LayerPrintColor(layer_name)
-    print_width = rs.LayerPrintWidth(layer_name)
+def get_layer_config(layer_name, defaults):
     conf = {}
+
+    print_color = rs.LayerPrintColor(layer_name)
+    color = get_color(print_color)
+    if color != get_color(defaults.get('color')):
+        conf['color'] = color
+
+    print_width = rs.LayerPrintWidth(layer_name)
+    if print_width != defaults.get('lineWeight'):
+        conf['lineWeight'] = print_width
+
+    line_type = rs.LayerLinetype(layer_name).lower()
+    if line_type != defaults.get('lineType'):
+        conf['lineType'] = line_type
+
+    return conf
+
+
+def get_solid_view_config(layer_name, defaults):
+    conf = {}
+
+    print_color = rs.LayerPrintColor(layer_name)
+    solid_color = get_color(print_color)
+    if solid_color != get_color(defaults.get('color')):
+        conf['solidColor'] = solid_color
+    return conf
+
+
+def get_pattern_view_config(layer_name, defaults):
+    conf = {}
+
+    print_color = rs.LayerPrintColor(layer_name)
+    pattern_color = get_color(print_color)
+    if pattern_color != get_color(defaults.get('color')):
+        conf['patternColor'] = pattern_color
+
+    print_width = rs.LayerPrintWidth(layer_name)
+    if print_width != defaults.get('lineWeight'):
+        conf['patternLineWeight'] = print_width
+
     hs = get_hatches(layer_name)
     if len(hs) > 0:
         h = hs[0]
         pattern = rs.HatchPattern(h.Id)
+        if pattern != defaults.get('pattern'):
+            conf['pattern'] = pattern
+
         scale = rs.HatchScale(h.Id)
-        conf['pattern'] = pattern
-        conf['patternScale'] = scale
-        conf['patternColor'] = get_color(print_color)
-        conf['patternLineWeight'] = '%.2f' % print_width
+        if scale != defaults.get('scale'):
+            conf['patternScale'] = scale
     return conf
 
 
@@ -156,12 +162,6 @@ def RunCommand( is_interactive ):
         return Rhino.Commands.Result.Failure
     codes = config['data']
 
-    # default_config = {
-    #     'color': '#000000',
-    #     'lineWeight': '0.18',
-    #     'lineType': 'continuous',
-    # }
-
     out = [] 
     for code in codes:
         conf = {}
@@ -170,21 +170,25 @@ def RunCommand( is_interactive ):
             continue
 
         try:
-            layer_conf = get_layer_config(layer_name)
+            layer_conf = get_layer_config(layer_name, layer_options)
             conf.update(layer_conf)
-        except Exception:
-            print('Failed to dump layer %s', layer_name)
+        except Exception as e:
+            print('Failed to dump layer %s' % layer_name)
+            print(e)
 
         for view in code['view']:
             view_layer_name = layer_name + view['layerSuffix']
+            render_type, render_options = view['render']
             if is_solid_view(view):
-                solid_conf = get_solid_view_config(view_layer_name)
+                solid_conf = get_solid_view_config(view_layer_name, render_options)
                 conf.update(solid_conf)
             else:
-                pattern_conf = get_pattern_view_config(view_layer_name)
+                pattern_conf = get_pattern_view_config(view_layer_name, render_options)
                 conf.update(pattern_conf)
 
-        out.append(conf)
+        if conf:
+            conf['code'] = layer_name
+            out.append(conf)
 
 #    builder = ConfigBuilder()
 #    new_data = builder.build(out)
