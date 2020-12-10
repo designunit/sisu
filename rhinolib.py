@@ -33,6 +33,8 @@ def link_sisufile(filepath):
 
 
 def get_user_text(obj, key, default_value=None, fn=None):
+    if not obj:
+        return default_value
     val = rs.GetUserText(obj.Id, key)
     if not val:
         return default_value
