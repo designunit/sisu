@@ -54,6 +54,11 @@ def airtable_push(sisupath, new_data):
     data = {
         'records': []
     }
+
+    print('pushing %s item(s)...' % len(new_data))
+    for x in new_data:
+        print(x)
+
     for partial in new_data:
         row_id = get_row_id(table, partial['code'])
         data['records'].append(create_airtable_record(row_id, partial))
