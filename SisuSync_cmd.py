@@ -23,6 +23,8 @@ KEY_ORIGIN = 'originId'
 KEY_ROT = 'patternRotation'
 KEY_BASEPOINT = 'patternBasePoint'
 
+BB_PRECISION = 6
+
 
 class HatchProxy:
     def __init__(self, hatch):
@@ -62,13 +64,12 @@ def point3d(param):
 
 
 def get_bounding_box_hash(bb):
-    n = 10
     ns = [
         bb.Min.X, bb.Min.Y, bb.Min.Z,
         bb.Max.X, bb.Max.Y, bb.Max.Z,
         bb.Area,
     ]
-    return '+'.join([str(round(x, n)) for x in ns])
+    return '+'.join([str(round(x, BB_PRECISION)) for x in ns])
 
 
 def find_by_bounding_box(items, bb):
@@ -196,7 +197,8 @@ def bake_layer(from_layer, to_layer, options):
 
     # bind main curve to created hatch
     for obj in source_objects:
-        hp = find_by_bounding_box(proxies, obj.Geometry.GetBoundingBox(True))
+        obj_bb = obj.Geometry.GetBoundingBox(True)
+        hp = find_by_bounding_box(proxies, obj_bb)
         if not hp:
             continue
         hp.set_origin(obj)
