@@ -23,18 +23,19 @@ UNIT_M2 = 'm2'
 
 
 def save_sisu_calc_report(report, filename):
-    fields = ['code', 'name', 'value', 'units']
+    fields = ['code', 'name', 'description', 'value', 'units']
     # open in wb mode to ignore windows line endings
     with open(filename, 'wb') as f:
         w = csv.DictWriter(f, delimiter=',', fieldnames=fields)
         w.writeheader()
         for code, x in report.items():
-            name, value, units = x
+            name, description, value, units = x
             w.writerow({
                 'code': code,
                 'value': value,
                 'units': units,
                 'name': name,
+                'description': description,
             })
 
 
@@ -156,6 +157,91 @@ def calc_linear_size(obj):
 #        tolerance = 2.1 * scriptcontext.doc.ModelAbsoluteTolerance
 #    newcurves = Rhino.Geometry.Curve.JoinCurves(curves, tolerance)
 
+
+def calc_piece(item):
+    code = item.get('id')
+    layer_name = code
+    units = item.get('units')
+    blocks = get_blocks(code)
+    block_names = [b.InstanceDefinition.Name for b in blocks]
+    c = Counter(block_names)
+    result = {}
+    for n, v in c.items():
+        result[n] = (item.get('name'), item.get('description'), v, units)
+    return result, []
+
+
+def calc_length(item):
+    code = item.get('id')
+    layer_name = code
+    units = item.get('units')
+    objs = filter_objects(code, any_filter([
+        geometry_filter('PolylineCurve'),
+        geometry_filter('PolyCurve'),
+        geometry_filter('NurbsCurve'),
+    ]))
+    total_length = 0
+    result = {}
+    total_length = sum([calc_simple_linear_size(o)
+        for o in objs
+    ])
+    result[code] = (item.get('name'), item.get('description'), total_length, units)
+    return result, []
+
+
+def calc_m(item):
+    failed = []
+    result = {}
+    code = item.get('id')
+    layer_name = code
+    units = item.get('units')
+    objs = filter_objects(code, any_filter([
+        geometry_filter('PolylineCurve'),
+        geometry_filter('PolyCurve'),
+        geometry_filter('NurbsCurve'),
+    ]))
+    total_length = 0
+    if is_linear(item):
+        for o in objs:
+            if not o.Geometry.IsClosed:
+                print('failed to calculate linear dimension: geometry is not closed')
+                failed.append(o)
+                continue
+            l = calc_linear_size(o)
+            total_length += l
+    else:
+        print('cannot calc length: dc is not configured properly', code)
+    result[code] = (item.get('name'), item.get('description'), total_length, units)
+    return result, failed
+
+
+def calc_m2(item):
+    result = {}
+    failed = []
+    code = item.get('id')
+    layer_name = code
+    units = item.get('units')
+    objs = filter_objects(code, any_filter([
+        geometry_filter('PolylineCurve'),
+        geometry_filter('PolyCurve'),
+        geometry_filter('NurbsCurve'),
+    ]))
+    hatches = create_hatches([o.Geometry for o in objs])
+    total_area = 0
+    geometry = [o.Geometry for o in objs]
+    geometry = hatches
+    for g in geometry:
+        try:
+            amp = Rhino.Geometry.AreaMassProperties.Compute(g)
+            a = amp.Area
+            total_area += a
+        except Exception as e:
+            print('failed to calculate area of', g, e)
+            failed.append(o)
+    result[code] = (item.get('name'), item.get('description'), total_area, units)
+    return result, failed
+
+
 def RunCommand( is_interactive ):
     config = get_sisufile()
     if not config:
@@ -169,79 +255,36 @@ def RunCommand( is_interactive ):
     for item in items:
         if not 'code' in item:
             print('failed to process item: code not found')
+            continue
+        
+        # calc existing layer only
+        layer_name = item['layer'][0]
+        if not rs.IsLayer(layer_name):
+            continue
 
         c = item.get('code')
-        code = c.get('id')
         units = c.get('units')
         if not units:
             print('failed to process dc item: units not specified')
 
-        layer_name = code
-
         if units == UNIT_PIECE:
-            blocks = get_blocks(code)
-            block_names = [b.InstanceDefinition.Name for b in blocks]
-            c = Counter(block_names)
-            for n, v in c.items():
-                result[n] = (layer_name, v, units)
-            print(code, units, len(blocks), c.items())
+            upd, failed = calc_piece(c)
+            failed_objects = failed_objects + failed
+            result.update(upd)
 
         if units == UNIT_M2:
-            objs = filter_objects(code, any_filter([
-                geometry_filter('PolylineCurve'),
-                geometry_filter('PolyCurve'),
-                geometry_filter('NurbsCurve'),
-            ]))
-            print(code, 'curves', len(objs))
-            hatches = create_hatches([o.Geometry for o in objs])
-            total_area = 0
-            geometry = [o.Geometry for o in objs]
-            geometry = hatches
-            for g in geometry:
-                try:
-                    amp = Rhino.Geometry.AreaMassProperties.Compute(g)
-                    a = amp.Area
-                    total_area += a
-                except Exception as e:
-                    print('failed to calculate area of', g, e)
-    #                failed_objects.append(o)
-            print(code, units, 'area:', total_area)
-            result[code] = (layer_name, total_area, units)
+            upd, failed = calc_m2(c)
+            failed_objects = failed_objects + failed
+            result.update(upd)
 
-        if units == 'm':
-    #        objs = filter_objects(code, type_filter('CurveObject'))
-            objs = filter_objects(code, any_filter([
-                geometry_filter('PolylineCurve'),
-                geometry_filter('PolyCurve'),
-                geometry_filter('NurbsCurve'),
-            ]))
-            total_length = 0
-            if is_simple_linear(c):
-                print('use simple linear calc', code)
-                total_length = sum([calc_simple_linear_size(o)
-                    for o in objs
-                ])
-            elif is_linear(item):
-                print('use linear calc for objects with area', code)
-                for o in objs:
-                    if not o.Geometry.IsClosed:
-                        print('failed to calculate linear dimension: geometry is not closed')
-                        failed_objects.append(o)
-                        continue
-                    l = calc_linear_size(o)
-                    total_length += l
-            else:
-                print('cannot calc length: dc is not configured properly', code)
-            print(code, units, 'length:', total_length)
-            result[code] = (layer_name, total_length, units)
-    #    l = rs.LayerId(layer_name)
-    #    print(code, l)
-
+        if units == UNIT_M:
+            upd, failed = calc_m(c)
+            failed_objects = failed_objects + failed
+            result.update(upd)
+ 
     if len(failed_objects) > 0:
-        print('failed to calc. need some work')
+        print('failed to calc')
         rs.SelectObjects([x.Id for x in failed_objects])
-    #    for obj in failed_objects:
-    #        rs.ObjectName(obj.Id, 'failed')
     else:
         print('saving to file...')
 
