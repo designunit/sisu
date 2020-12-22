@@ -34,6 +34,9 @@ class HatchProxy:
 
     def set_origin(self, obj):
         self.origin = obj
+        
+    def has_origin(self):
+        return self.origin is not None
 
     def apply_options(self, defaults):
         rotation = get_user_text(self.origin, KEY_ROT, None, float)
@@ -212,7 +215,8 @@ def bake_layer(from_layer, to_layer, options):
         hatch_obj = sc.doc.Objects.Find(hatch_guid)
 
         # save origin curve in hatch user text
-        rs.SetUserText(hatch_obj, KEY_ORIGIN, hp.origin.Id)
+        if hp.has_origin():
+            rs.SetUserText(hatch_obj, KEY_ORIGIN, hp.origin.Id)
 
         hatch_obj.Attributes.LayerIndex = target_layer_index
         hatch_obj.Attributes.DisplayOrder = draw_order
