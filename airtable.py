@@ -70,7 +70,8 @@ def get_data_from_airtable(token, base_id, table_name):
     for record in table['records']:
         f = record['fields']
         code = f.get('code')
-        if not code:
+        units = f.get('units')
+        if not code or not units:
             continue
         if code in collected_codes:
             continue
@@ -82,7 +83,12 @@ def get_data_from_airtable(token, base_id, table_name):
                     'lineType': f.get('lineType', 'continuous'),
                     'lineWeight': f.get('lineWeight', 1)
                 }],
-            'code': code,
+            'code': {
+                'id': code,
+                'units': units,
+                'name': f.get('name'),
+                'description': f.get('description'),
+            },
             'properties': {
                 'patternRotation': 0,
                 'patternBasePoint': [0, 0, 0]
