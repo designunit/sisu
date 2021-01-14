@@ -30,13 +30,17 @@ def save_sisu_calc_report(report, filename):
         w.writeheader()
         for code, x in report.items():
             name, description, value, units = x
-            w.writerow({
-                'code': code,
-                'value': value,
-                'units': units,
-                'name': name,
-                'description': description,
-            })
+            try:
+                w.writerow({
+                    'code': code,
+                    'value': value,
+                    'units': units,
+                    'name': name,
+                    'description': description,
+                })
+            except Exception as e:
+                print('failed to save', code)
+                print(e)
 
 
 def get_dc(filepath):
@@ -121,9 +125,7 @@ def is_linear(code):
     """
     should be defined as M for units and has a fill pattern in DC 
     """
-    is_m = code['units'] == 'm'
-    has_pattern = 'pattern' in code
-    return is_m and has_pattern
+    return code['units'] == 'm'
 
 
 def is_simple_linear(code):
@@ -286,13 +288,12 @@ def RunCommand( is_interactive ):
         print('failed to calc')
         rs.SelectObjects([x.Id for x in failed_objects])
     else:
-        print('saving to file...')
-
         now = datetime.date.today()
         prefix = now.strftime('%Y%m%d')
         doc = rs.DocumentPath()
         filename = '%s-SISU_CALC.csv' % prefix
         filepath = os.path.join(doc, filename)
+        print('saving to file... %s' % filepath)
         save_sisu_calc_report(result, filepath)
     #    try:
     #        conf = get_layer_config(code)
