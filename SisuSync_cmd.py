@@ -157,7 +157,13 @@ def get_modified_hatches(layer_name, defaults):
 def save_hatch_options(obj, defaults):
     curve_id = rs.GetUserText(obj, KEY_ORIGIN)
     curve_id = rs.coerceguid(curve_id)
+    if not curve_id:
+        return
+
     curve_obj = sc.doc.Objects.FindId(curve_id)
+    if not curve_obj:
+        return
+
     hatch = obj.Geometry
 
     rotation = math.degrees(hatch.PatternRotation)
