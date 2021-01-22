@@ -12,10 +12,14 @@ class AirtableProvider():
         return get_data_from_airtable(self.token, self.table_id, self.table_name)
 
 
-def hex_to_rgb(hex_code):
-    hex = hex_code.lstrip('#')
-    hlen = len(hex)
-    return tuple(int(hex[i:i + hlen / 3], 16) for i in range(0, hlen, hlen / 3))
+def hex_to_rgb(hex_value):
+    hex_value = hex_value.strip().lstrip('#')
+    hlen = len(hex_value)
+    s = 2
+    return tuple(
+        int(hex_value[i:i+s], 16)
+        for i in range(0, hlen, s)
+    )
 
 
 def create_views(record):
