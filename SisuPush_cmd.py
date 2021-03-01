@@ -4,8 +4,7 @@ import Rhino
 import rhinoscriptsyntax as rs
 import scriptcontext as sc
 from rhinolib import get_sisufile, get_sisufile_path
-from sisulib import get_related_layers
-from sync import sisufile_update_data
+from sisulib import get_related_layers, sisufile_update_data
 from update_airtable_data import airtable_push
 import json
 import csv

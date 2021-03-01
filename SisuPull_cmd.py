@@ -1,6 +1,6 @@
 import Rhino
 from rhinolib import get_sisufile_path
-from sync import sisufile_pull
+from sisulib import sisufile_pull
 
 __commandname__ = 'SisuPull'
 
