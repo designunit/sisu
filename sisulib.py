@@ -2,6 +2,7 @@ import json
 import re
 import os
 import airtable
+import csv
 
 
 def get_related_layers(config, derived_only=False):
@@ -16,7 +17,7 @@ def get_related_layers(config, derived_only=False):
         for view in x['view']:
             view_name = name + view['layerSuffix']
             names.append(full_layer_name(view_name, name))
-    return namesimport csv
+    return names
 
 
 def read_sisufile(filepath):
