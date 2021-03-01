@@ -1,6 +1,6 @@
 import rhinoscriptsyntax as rs
 import scriptcontext as sc
-from sync import read_sisufile
+from sisulib import read_sisufile
 import os.path
 
 SISUFILE_KEY = 'sisuSyncFile'
