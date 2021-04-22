@@ -1,6 +1,6 @@
 import rhinoscriptsyntax as rs
 import scriptcontext as sc
-from sisulib import read_sisufile
+from sisulib import read_sisufile, get_related_layers
 import os.path
 
 SISUFILE_KEY = 'sisuSyncFile'
@@ -53,4 +53,14 @@ def find_layer_objects(match_fn, layer_name):
         return []
 
     return [x for x in xs if match_fn(x)]
+
+
+def get_sisu_layers(config, derived_only=False):
+    rhino_layer_names = rs.LayerNames()
+    layers = get_related_layers(config, derived_only)
+    names = []
+    for layer in layers:
+        if layer in rhino_layer_names:
+            names.append(layer)
+    return names
 
