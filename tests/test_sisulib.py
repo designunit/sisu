@@ -1,5 +1,4 @@
 from sisulib import create_color, get_related_layers, read_sisufile
-
 PATH_TO_CONFIG_FILE = 'sisufile.json'
 
 
@@ -14,7 +13,7 @@ class TestCreateColorFunc:
         assert [0, 0, 0] == create_color('135, 125')
 
 
-class TestGetRelatedColorsFunc:
+class TestGetRelatedLayersFunc:
     def test_get_derived_only(self):
         related_layers = get_related_layers(read_sisufile(PATH_TO_CONFIG_FILE))
         assert [u'Default', 'Default::Default_SOLID',
