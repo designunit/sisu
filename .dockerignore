@@ -1,0 +1,7 @@
+# TODO: optimize this
+tests/__pycache__
+__plugin__.py
+__pycache__
+README.md
+venv
+
