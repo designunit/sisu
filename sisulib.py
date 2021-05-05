@@ -1,8 +1,8 @@
-import json
-import re
-import os
-import airtable
 import csv
+import json
+import os
+
+import airtable
 
 
 def get_related_layers(config, derived_only=False):
@@ -34,11 +34,11 @@ def sisufile_pull(filepath):
     sisufile = read_sisufile(filepath)
     if not sisufile:
         return False
-    
+
     provider = get_provider(sisufile)
     if not provider:
         return False
-    
+
     try:
         data = provider.get_data()
 
@@ -62,7 +62,7 @@ def sisufile_update_data(filepath, new_data):
         config = json.load(f)
         config['data'] = new_data
 
-    tmp, tmp_path = tempfile.mkstemp()    
+    tmp, tmp_path = tempfile.mkstemp()
     with os.fdopen(tmp, 'w') as f:
         json.dump(config, f, ensure_ascii=False, indent=4)
 
@@ -77,11 +77,11 @@ def sisufile_update_data(filepath, new_data):
     #     f.truncate()
 
 
-
 def read_sisufile_json(filepath):
     with open(filepath, 'r') as f:
         data = json.load(f)
     return data
+
 
 def read_sisufile_csv(filepath):
     def row(x):
@@ -131,10 +131,16 @@ def read_sisufile_csv(filepath):
 
 
 def create_color(value):
-    if re.match(r'[a-zA-Z]+', value):
+    value_list = value.split(', ')
+
+    for val in value_list:
+        if not val.isdigit():
+            return [0, 0, 0]
+
+    if len(value_list) != 3:
         return [0, 0, 0]
-    color_list = value.split(',')
-    return [int(channel) for channel in color_list]
+
+    return [int(channel) for channel in value_list]
 
 
 def get_provider(config):
